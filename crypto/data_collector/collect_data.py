@@ -9,14 +9,14 @@ import asyncio
 
 class dataCollector:
     def __init__(self):
-        middle_contract = 'KXBTCD-25MAY1319-T104249.99'
+        middle_contract = 'KXBTCD-25MAY1417-T103499.99'
         event_name = '-'.join(middle_contract.split('-')[:2])
         middle_strike = float(middle_contract.split('-')[2][1:])
 
         num_each_side = 3
         self.contracts_to_track = []
         for i in range(-num_each_side, num_each_side + 1):
-            strike = middle_strike + i * 250
+            strike = middle_strike + i * 500
             contract = f'{event_name}-T{strike:.2f}'
             self.contracts_to_track.append(contract)
 
@@ -76,20 +76,6 @@ def append_rows_to_csv(rows, filename='data/data_log.csv'):
     df.to_csv(filename, mode='a', index=False, header=not file_exists)
     print(f"[CSV] Wrote {len(df)} rows to {filename}")
 
-def run_collector_every_second(collector, filename='data/data_log.csv'):
-    while True:
-        start_time = time.time()
-
-        # Collect all rows (BRTI + options)
-        data_rows = collector.parallel_collect_data()
-
-        # Append all to one file
-        append_rows_to_csv(data_rows, filename)
-
-        # Sleep to ensure 1 Hz loop
-        elapsed = time.time() - start_time
-        time.sleep(max(0, 1.0 - elapsed))
-
 async def poll_brti_and_collect():
     collector = dataCollector()
     print("🌀 Starting Playwright polling loop...")
@@ -119,9 +105,7 @@ async def poll_brti_and_collect():
             except Exception as e:
                 print(f"[{datetime.now()}] ⚠️ Error while fetching price:", e)
 
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.1)
 
 if __name__ == "__main__":
-    collector = dataCollector()
-    run_collector_every_second(collector)
-
+    asyncio.run(poll_brti_and_collect())
