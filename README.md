@@ -1,6 +1,7 @@
 I'm building some tools for trading and analysis of BTC hourly options on [Kalhsi](https://kalshi.com/events/crypto/hourly).
 
 Here are some of the tools that I've made so far. All of them are built in Python, so the GUI tools are not as fast or robust as I would like them to be, but for now I'm just trying to get an MVP up and running. A goal later on will be to make some sort of visualizer similar to the one Jasper Van Merle made for [IMC's Prosperity challange](https://github.com/jmerle/imc-prosperity-3-visualizer). Lots of the code and data structures I will implement will draw on the work I did during that challange. 
+
 ![image](https://github.com/user-attachments/assets/513300b2-b511-4de3-99a5-96e950a41913)
 
 This is a simple local endpoint for me to constantly track the realtime BRTI index, which is what the options track.
@@ -26,5 +27,9 @@ So far, I've looked at GBM modelling to determine the price of the contracts. If
 ![image](https://github.com/user-attachments/assets/f7794a97-3d42-45b9-bd2b-5d874da6eb30)
 
 These were some generated images, and it appears to be a decent model for predicitng, but I definetly need to tweak what volatility I use in the monte carlo simulations.
+
+To get the GUI up and running, copy the resporitory to a local directory and run `python brti_listener.py` in a terminal. This will begin tracking and storing the BRTI price information locally. Then run `python gui/main.py` to open the GUI. For the options chain, copy the event ticker on Kahlshi for the BTC hourly contracts. For the contract viewer, copy the specific market.
+
+![image](https://github.com/user-attachments/assets/819edae3-aff9-4813-b3e4-f45e84a181e0)
 
 
