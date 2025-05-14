@@ -1,6 +1,6 @@
 I'm building some tools for trading and analysis of BTC hourly options on [Kalhsi](https://kalshi.com/events/crypto/hourly).
 
-Here are some of the tools that I've made so far:
+Here are some of the tools that I've made so far. All of them are built in Python, so the GUI tools are not as fast or robust as I would like them to be, but for now I'm just trying to get an MVP up and running. A goal later on will be to make some sort of visualizer similar to the one Jasper Van Merle made for [IMC's Prosperity challange](https://github.com/jmerle/imc-prosperity-3-visualizer). Lots of the code and data structures I will implement will draw on the work I did during that challange. 
 ![image](https://github.com/user-attachments/assets/513300b2-b511-4de3-99a5-96e950a41913)
 
 This is a simple local endpoint for me to constantly track the realtime BRTI index, which is what the options track.
