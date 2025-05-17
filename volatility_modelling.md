@@ -1,9 +1,9 @@
 Using the [CF Bitcoin volatility Real time Index](https://www.cfbenchmarks.com/data/indices/BVX) and scrape this data every second, then use it as the base implied vol seems like a decent starting point.
 
-I use the black scholes formula to calculate the price using the implied volatility as well as a scaling factor to account for changing volatility.
+![image](https://github.com/user-attachments/assets/781eb3cb-94d6-4824-987b-64acb03b752a)
 
 
-
+I use the black scholes formula for binary options to calculate the price using the implied volatility as well as a scaling factor to account for changing volatility.
 
 ```python
 def binary_call_price(S0, K, sigma, r, T):
@@ -26,7 +26,6 @@ Using the current volatlity from the index (43.06%), and tuning the beta paramet
 
 This introduces new hyperparameters that must be tuned, specifically the beta decay factor and the floor. We must also tune the values after the fact, so there is no guarantee that this model performs well when we give it unseen data.
 
-![image](https://github.com/user-attachments/assets/781eb3cb-94d6-4824-987b-64acb03b752a)
 
 Another approach is to model the implied volatility from the market directly using a root solving approach.
 
