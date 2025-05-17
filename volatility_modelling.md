@@ -2,8 +2,14 @@ Using the [CF Bitcoin volatility Real time Index](https://www.cfbenchmarks.com/d
 
 I use the black scholes formula to calculate the price using the implied volatility
 
-
-<pre> ```python def effective_sigma(T, sigma_annual, beta=0.01, floor=0.05, T0=30/365): # Avoid negative or zero T if T <= 0: return sigma_annual * floor scaling = (T / T0) ** beta return sigma_annual * max(scaling, floor) ``` </pre>
+```python
+def effective_sigma(T, sigma_annual, beta=0.01, floor=0.05, T0=30/365):
+    # Avoid negative or zero T
+    if T <= 0:
+        return sigma_annual * floor
+    scaling = (T / T0) ** beta
+    return sigma_annual * max(scaling, floor)
+```
 
 ![image](https://github.com/user-attachments/assets/57cf6254-9f3a-4c26-829c-97a445ac1735)
 
