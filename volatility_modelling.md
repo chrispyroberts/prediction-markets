@@ -24,7 +24,7 @@ Using the current volatlity from the index (43.06%), and tuning the beta paramet
 
 ![image](https://github.com/user-attachments/assets/57cf6254-9f3a-4c26-829c-97a445ac1735)
 
-This introduces new hyperparameters that must be tuned, specifically the beta decay factor and the floor. 
+This introduces new hyperparameters that must be tuned, specifically the beta decay factor and the floor. We must also tune the values after the fact, so there is no guarantee that this model performs well when we give it unseen data.
 
 ![image](https://github.com/user-attachments/assets/781eb3cb-94d6-4824-987b-64acb03b752a)
 
