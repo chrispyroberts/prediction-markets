@@ -20,9 +20,11 @@ def effective_sigma(T, sigma_annual, beta=0.01, floor=0.05, T0=30/365):
     return sigma_annual * max(scaling, floor)
 ```
 
+Using the current volatlity from the index (43.06%), and tuning the beta parameter to fit, we get this
+
 ![image](https://github.com/user-attachments/assets/57cf6254-9f3a-4c26-829c-97a445ac1735)
 
-This introduces new hyperparameters that must be tuned, specifically the beta decay factor and the floor. The idea would be I would use the 
+This introduces new hyperparameters that must be tuned, specifically the beta decay factor and the floor. 
 
 ![image](https://github.com/user-attachments/assets/781eb3cb-94d6-4824-987b-64acb03b752a)
 
