@@ -7,9 +7,9 @@ import numpy as np
 
 app = Flask(__name__)
 
-# Shared price state
-latest_price = {'value': None, 'timestamp': None}
+# Shared price state and lock
 latest_price = {'value': None, 'timestamp': None, 'simple_average': []}
+price_lock = threading.Lock()
 
 # Async polling loop
 async def poll_brti():
@@ -31,38 +31,45 @@ async def poll_brti():
                 if price != last_logged_price:
                     print(f"[{timestamp}] 💰 New BRTI Price: ${price}")
                     last_logged_price = price
-                    
-                    latest_price['simple_average'].append(price)
-                    if len(latest_price['simple_average']) > 60:
-                        latest_price['simple_average'].pop(0)
 
-                latest_price['value'] = price
-                latest_price['timestamp'] = timestamp
+                    with price_lock:
+                        latest_price['simple_average'].append(price)
+                        if len(latest_price['simple_average']) > 60:
+                            latest_price['simple_average'].pop(0)
+
+                        latest_price['value'] = price
+                        latest_price['timestamp'] = timestamp
+
+                else:
+                    with price_lock:
+                        latest_price['value'] = price
+                        latest_price['timestamp'] = timestamp
 
             except Exception as e:
                 print(f"[{datetime.now()}] ⚠️ Error while fetching price:", e)
 
             await asyncio.sleep(0.3)
 
-# Thread wrapper for the async loop
+# Thread wrapper for async loop
 def start_polling():
     asyncio.run(poll_brti())
 
 # API endpoint to retrieve latest price
 @app.route('/price', methods=['GET'])
 def get_price():
-    if latest_price['value'] is None:
-        return jsonify({'status': 'waiting for data'}), 503
-    return jsonify({
-        'brti': latest_price['value'],
-        'simple_average': np.mean(latest_price['simple_average']),
-        'timestamp': latest_price['timestamp']
-    })
+    with price_lock:
+        if latest_price['value'] is None:
+            return jsonify({'status': 'waiting for data'}), 503
+        return jsonify({
+            'brti': latest_price['value'],
+            'simple_average': np.mean(latest_price['simple_average']),
+            'timestamp': latest_price['timestamp']
+        })
 
 if __name__ == "__main__":
     # Start polling thread
     threading.Thread(target=start_polling, daemon=True).start()
 
-    # Start Flask app (visit http://localhost:5000/price)
+    # Start Flask server
     print("🌐 Starting Flask server on http://localhost:5000 ...")
     app.run(port=5000)

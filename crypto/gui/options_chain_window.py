@@ -128,8 +128,8 @@ class OptionsChainWindow(tk.Toplevel):
                 time_left_str = f"{hours}h {minutes}m"
 
             moneyness = get_moneyness(self.brti_price, strike, hours_left)
-            bid_iv = self.iv_function(self.brti_price, strike, hours_left, best_bid/100) * 100
-            ask_iv = self.iv_function(self.brti_price, strike, hours_left, best_ask/100) * 100
+            bid_iv = self.iv_function(self.brti_price, strike, hours_left, best_bid/100)
+            ask_iv = self.iv_function(self.brti_price, strike, hours_left, best_ask/100)
 
             if not(np.isnan(bid_iv) or np.isinf(bid_iv)):
                 self.bid_m_ts.append(moneyness)

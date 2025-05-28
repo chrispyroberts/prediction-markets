@@ -163,7 +163,7 @@ class ContractWindow(tk.Toplevel):
             value = f"${ask_price * size / 100}"
 
             IV = implied_vol_binary_call(self.brti_average, self.strike, self.tte, ask_price/100)
-            IV = f"{IV*100:.1f}%" # Convert to percentage
+            IV = f"{IV:.1f}%" # Convert to percentage
 
             if previous_price and abs(ask_price - previous_price) < 1 + epsilion:
                 rows.append(("", "", "", ask_price, size, value, IV))
@@ -182,7 +182,7 @@ class ContractWindow(tk.Toplevel):
             value = f"${bid_price * size / 100}"
 
             IV = implied_vol_binary_call(self.brti_average, self.strike, self.tte, bid_price/100)
-            IV = f"{IV*100:.1f}%" # Convert to percentage
+            IV = f"{IV:.1f}%" # Convert to percentage
 
             if previous_price and abs(bid_price - previous_price) < 1 + epsilion:
                 rows.append((IV, value, size, bid_price, '', '', ''))

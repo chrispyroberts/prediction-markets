@@ -11,7 +11,6 @@ import numpy as np
 
 session = requests.Session()
 
-
 USE_YEARS = True  # Set to True if you want to use years for TTE, False for hours
 
 def get_brti_price():

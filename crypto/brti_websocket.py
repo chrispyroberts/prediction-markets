@@ -1,18 +1,22 @@
-from flask import Flask, jsonify
+import eventlet
+eventlet.monkey_patch()
+
+from flask import Flask, jsonify, request
 from flask_socketio import SocketIO
-from flask import request
-import asyncio
-import threading
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from datetime import datetime
 import numpy as np
+import threading
+import time
+from flask_cors import CORS
 
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode='eventlet')
+CORS(app, supports_credentials=True)
+
+socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins='*')  # ✅ Allow all origins
 
 latest_price = {'value': None, 'timestamp': None, 'simple_average': []}
-
 active_clients = set()
 
 @socketio.on('connect')
@@ -23,7 +27,6 @@ def handle_connect():
     print(f"   📎 Session ID:   {sid}")
     print(f"   👥 Active clients: {list(active_clients)}")
 
-
 @socketio.on('disconnect')
 def handle_disconnect():
     sid = request.sid
@@ -31,31 +34,27 @@ def handle_disconnect():
     print("❌ A client disconnected.")
     print(f"   👥 Active clients: {list(active_clients)}")
 
-# Playwright polling loop
-async def poll_brti():
+def poll_brti():
     print("🌀 Starting Playwright polling loop...")
-    async with async_playwright() as p:
+    with sync_playwright() as p:
         print("🚀 Launching browser...")
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto("https://www.cfbenchmarks.com/data/indices/BRTI", timeout=20000)
-        await page.wait_for_selector('div.leading-6 span')
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto("https://www.cfbenchmarks.com/data/indices/BRTI", timeout=20000)
+        page.wait_for_selector('div.leading-6 span')
         print("📡 Connected to BRTI page.")
 
         last_logged_price = None
-
-        print("⏳ Waiting 2 seconds for clients to connect...")
-        await asyncio.sleep(2)
+        time.sleep(2)  # wait for clients to connect
 
         while True:
             try:
-                price_text = await page.locator('div.leading-6 span').first.text_content()
+                price_text = page.locator('div.leading-6 span').first.text_content()
                 price = float(price_text.replace('$', '').replace(',', ''))
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                 if price != last_logged_price:
                     last_logged_price = price
-
                     latest_price['simple_average'].append(price)
                     if len(latest_price['simple_average']) > 60:
                         latest_price['simple_average'].pop(0)
@@ -72,16 +71,13 @@ async def poll_brti():
                     print(f"📢 Emitting price_update: {update_payload}")
                     print(f"👥 Active connected clients: {list(active_clients)}")
 
-                    for sid in list(active_clients):
-                        socketio.emit('price_update', update_payload, room=sid, namespace='/', broadcast=True)
+                    # Emit to all clients (for debugging)
+                    socketio.emit('price_update', update_payload)
 
             except Exception as e:
                 print(f"[{datetime.now()}] ⚠️ Error while fetching price:", e)
 
-            await asyncio.sleep(0.3)
-
-def start_polling():
-    asyncio.run(poll_brti())
+            time.sleep(0.3)
 
 @app.route('/price', methods=['GET'])
 def get_price():
@@ -94,7 +90,6 @@ def get_price():
     })
 
 if __name__ == "__main__":
-    threading.Thread(target=start_polling, daemon=True).start()    
+    threading.Thread(target=poll_brti, daemon=True).start()
     print("🌐 Starting WebSocket server on http://localhost:5000 ...")
     socketio.run(app, port=5000)
-
