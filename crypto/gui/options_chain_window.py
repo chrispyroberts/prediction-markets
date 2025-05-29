@@ -1,4 +1,4 @@
-from utils import get_brti_price, get_options_chain_for_event, get_market_data, implied_vol_binary_call, get_moneyness, get_top_orderbook, implied_vol_one_touch
+from websockets.utils import get_brti_price, get_options_chain_for_event, get_market_data, implied_vol_binary_call, get_moneyness, get_top_orderbook, implied_vol_one_touch
 from tkinter import ttk
 import tkinter as tk
 from datetime import datetime, timezone

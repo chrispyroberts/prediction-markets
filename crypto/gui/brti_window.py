@@ -6,7 +6,7 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from utils import get_brti_price
+from websockets.utils import get_brti_price
 
 class BRTIWindow(tk.Toplevel):
     def __init__(self, master=None, params=None):

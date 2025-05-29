@@ -5,7 +5,7 @@ from brti_window import BRTIWindow
 from contract_window import ContractWindow
 from options_chain_window import OptionsChainWindow
 from tkinter import simpledialog
-from utils import get_orderbook, get_options_chain_for_event
+from websockets.utils import get_orderbook, get_options_chain_for_event
 
 class MainApp:
     def __init__(self, root):

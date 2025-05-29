@@ -42,7 +42,7 @@ async def main():
                 "heartbeat",
                 {
                     "name": "ticker",
-                    "product_ids": ["ETH-BTC", "ETH-USD"]
+                    "product_ids": ["BTC-USD"]
                 }
             ],
             "signature": signature,

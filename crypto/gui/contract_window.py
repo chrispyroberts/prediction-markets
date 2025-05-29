@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import threading
 import time
-from utils import get_orderbook, get_market_data, get_brti_price, implied_vol_binary_call, get_moneyness
+from websockets.utils import get_orderbook, get_market_data, get_brti_price, implied_vol_binary_call, get_moneyness
 from datetime import datetime, timezone
 
 class ContractWindow(tk.Toplevel):

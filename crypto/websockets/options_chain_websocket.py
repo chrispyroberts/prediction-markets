@@ -18,7 +18,7 @@ from utils import (
 )
 
 # CONTROLS HOW NEAR THE MONEY WE SEE CONTRACTS
-THRESHOLD = 1000
+THRESHOLD = 500
 
 # === Configuration ===
 if len(sys.argv) < 2:

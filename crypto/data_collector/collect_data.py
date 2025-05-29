@@ -1,4 +1,4 @@
-from utils import *
+from websockets.utils import *
 from datetime import datetime, timezone
 import pandas as pd
 import os
