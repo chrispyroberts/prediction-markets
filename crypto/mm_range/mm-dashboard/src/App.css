@@ -36,3 +36,26 @@
     transform: rotate(360deg);
   }
 }
+
+body {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+table {
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+}
+
+th, td {
+  border: 1px solid #444;
+}
+
+h2, h3, label, select {
+  color: #e0e0e0;
+}
+
+select {
+  background-color: #2e2e2e;
+  color: #e0e0e0;
+}

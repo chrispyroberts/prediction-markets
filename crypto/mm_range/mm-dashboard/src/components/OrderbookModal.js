@@ -8,7 +8,6 @@ const socket = io('http://localhost:5052', {
 export default function QuotesPanel() {
   const [quotes, setQuotes] = useState({});
   const seenTickers = useRef(new Set());
-  const [realizedVol, setRealizedVol] = useState(0);
 
   useEffect(() => {
     socket.on('dashboard_update', (data) => {
@@ -18,41 +17,33 @@ export default function QuotesPanel() {
       const avgPrices = data.avg_prices || {};
       const midPrices = data.mid_prices || {};
       const realizedPnls = data.realized_pnl || {};
-      const unrealizedPnls = data.unrealized_pnl || {};
-      const estMidPrices = data.estimated_mid_prices || {}; // fixed typo!
       const strikes = data.strikes || {};
       const brti = data.brti_60s_price || 0;
-      const volatility = data.brti_60s_realized_volatility || 0;
-
-      setRealizedVol(volatility);
 
       Object.keys({
         ...currentMarket,
         ...currentOur,
         ...currentPositions,
         ...midPrices,
-        ...realizedPnls,
-        ...unrealizedPnls,
-        ...estMidPrices
+        ...realizedPnls
       }).forEach(ticker => seenTickers.current.add(ticker));
 
       const merged = {};
       seenTickers.current.forEach(ticker => {
         const pos = currentPositions[ticker] ?? 0;
         const avg = avgPrices[ticker] ?? null;
-        const estMid = estMidPrices[ticker] ?? null; // now properly read
-        const realized = realizedPnls[ticker] ?? null;
-        const unrealized = (pos !== 0 && avg !== null && estMid !== null)
-          ? ((estMid - avg) * pos) / 100
+        const mid = midPrices[ticker] ?? null;
+        const unrealized = (pos !== 0 && avg !== null && mid !== null)
+          ? ((mid - avg) * pos) / 100
           : null;
+        const realized = realizedPnls[ticker] ?? null;
 
         merged[ticker] = {
           ticker,
           strike: strikes[ticker] ?? ticker,
           position: pos,
           avg_price: avg,
-          mid_price: midPrices[ticker] ?? null,
-          estimated_mid_price: estMid, // new: scaled to cents by backend
+          mid_price: mid,
           unrealized_pnl: unrealized,
           realized_pnl: realized,
           spread: null,
@@ -91,17 +82,11 @@ export default function QuotesPanel() {
 
   return (
     <div style={{ padding: '1.5rem', maxHeight: '1090px', overflowY: 'auto' }}>
-      <h2>
-        📊 Live Market Quotes (Bid/Ask) — BRTI: ${brtiPrice.toFixed(2)} | 60s Realized Vol (Annualized): {(realizedVol * 100).toFixed(2)}%
-      </h2>
+      <h2>📊 Live Market Quotes (Bid/Ask) — BRTI: ${brtiPrice.toFixed(2)}</h2>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            {[
-              'Ticker', 'Strike', 'Position', 'Avg Price', 'Last Mid Price',
-              'Estimated Mid Price', 'Est. Unrealized PnL ($)', 'Realized PnL ($)',
-              'Spread', 'MM Bid', 'Our Bid', 'Our Ask', 'MM Ask'
-            ].map(h => (
+            {[ 'Ticker', 'Strike', 'Position', 'Avg Price', 'Last Mid Price', 'Unrealized PnL ($)', 'Realized PnL ($)', 'Spread', 'MM Bid', 'Our Bid', 'Our Ask', 'MM Ask' ].map(h => (
               <th key={h} style={{ border: '1px solid #ccc', padding: '8px', background: '#f5f5f5' }}>{h}</th>
             ))}
           </tr>
@@ -119,11 +104,8 @@ export default function QuotesPanel() {
                 <td style={{ border: '1px solid #ccc', padding: '8px' }}>{entry.ticker}</td>
                 <td style={{ border: '1px solid #ccc', padding: '8px' }}>{entry.strike}</td>
                 <td style={{ border: '1px solid #ccc', padding: '8px' }}>{entry.position}</td>
-                <td style={{ border: '1px solid #ccc', padding: '8px' }}>{typeof entry.avg_price === 'number' ? (entry.avg_price / 100).toFixed(2) : ''}</td>
-                <td style={{ border: '1px solid #ccc', padding: '8px' }}>{typeof entry.mid_price === 'number' ? (entry.mid_price / 100).toFixed(2) : ''}</td>
-                <td style={{ border: '1px solid #ccc', padding: '8px' }}>
-                  {typeof entry.estimated_mid_price === 'number' ? (entry.estimated_mid_price / 100).toFixed(4) : ''}
-                </td>
+                <td style={{ border: '1px solid #ccc', padding: '8px' }}>{typeof entry.avg_price === 'number' ? entry.avg_price.toFixed(2) : ''}</td>
+                <td style={{ border: '1px solid #ccc', padding: '8px' }}>{typeof entry.mid_price === 'number' ? entry.mid_price.toFixed(2) : ''}</td>
                 <td style={{ border: '1px solid #ccc', padding: '8px', color: entry.unrealized_pnl >= 0 ? 'green' : 'red' }}>{typeof entry.unrealized_pnl === 'number' ? entry.unrealized_pnl.toFixed(2) : ''}</td>
                 <td style={{ border: '1px solid #ccc', padding: '8px', color: entry.realized_pnl >= 0 ? 'green' : 'red' }}>{typeof entry.realized_pnl === 'number' ? entry.realized_pnl.toFixed(2) : ''}</td>
                 <td style={{ border: '1px solid #ccc', padding: '8px' }}>{typeof entry.spread === 'number' ? entry.spread.toFixed(2) : ''}</td>
@@ -135,6 +117,7 @@ export default function QuotesPanel() {
             );
           })}
         </tbody>
+
       </table>
     </div>
   );

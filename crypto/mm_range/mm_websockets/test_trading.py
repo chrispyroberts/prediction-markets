@@ -12,6 +12,8 @@ from flask_socketio import SocketIO
 
 from flask import Flask, jsonify, request
 
+import numpy as np # for realized vol tracking
+from utils import binary_call_price, implied_vol_binary_call
 
 sio = socketio.Client()
 
@@ -19,7 +21,10 @@ sio = socketio.Client()
 previous_quotes = {}
 our_quotes = {} # current quotes we are proposing
 new_quotes = {} # new quotes we are proposing this round
-mid_prices = {}
+mid_prices = {} 
+estiamted_mid_prices = {}
+
+brti_window = [] # List to store last 60 seconds of BRTI prices
 
 # Global dictionary to track seen trades by contract
 seen_trades = {}
@@ -38,6 +43,9 @@ strikes = {}
 positions = defaultdict(int)              # ticker -> net qty
 avg_prices = defaultdict(float)           # ticker -> avg entry price
 realized_pnl = defaultdict(float)         # ticker -> realized pnl
+unrealized_pnl = defaultdict(float)
+real_unrealized_pnl = defaultdict(float)  # ticker -> unrealized pnl
+
 
 @sio.event
 def connect():
@@ -74,13 +82,32 @@ def emit_data(event, data):
     socketio.emit(event, data)
     print(f"🔊 Emitted event '{event}' with data")
 
+# error bands on estimated fair price
+def compute_error_band_quotes(P_fair, absolute_uncertainty=0.05):
+    bid = max(0.0, P_fair - absolute_uncertainty)
+    ask = min(1.0, P_fair + absolute_uncertainty)
+    return bid, ask
 
 @sio.on('brti_and_options_update')
 def handle_update(data):
-    global total_trades, expected_spread_pnl, total_expected_spread_pnl, our_quotes, new_quotes, mid_prices
+    global total_trades, unrealized_pnl, real_unrealized_pnl, expected_spread_pnl, total_expected_spread_pnl, our_quotes, new_quotes, mid_prices, brti_window, estiamted_mid_prices
 
+    brti_window.append(data['brti'])
+    if len(brti_window) > 60:
+        brti_window.pop(0)
+
+    # Compute realized volatility if enough data
+    if len(brti_window) > 1:
+        log_returns = np.diff(np.log(brti_window))
+        brti_60s_realized_volatility = np.std(log_returns) # convert to years
+
+        # Annualize (31,536,000 seconds in a year)
+        volatility_annualized = brti_60s_realized_volatility * np.sqrt(31_536_000)
+
+    else:
+        volatility_annualized = 0.0
+        
     print(f"\n📈 New update @ {data['timestamp']} | BRTI: {data['brti']:.2f} | Avg: {data['simple_average']:.2f}")
-    total_unrealized = 0.0
     total_realized = 0.0
     market_quotes = {}
     for contract in data.get('contracts', []):
@@ -92,6 +119,8 @@ def handle_update(data):
         best_bid = contract.get('best_bid', mm_bid)
         best_ask = contract.get('best_ask', mm_ask)
 
+        orderbook = contract.get('orderbook', (None, None))
+
         spread = contract.get('spread')
         mid_price = contract.get('mid_price')
         trades = contract.get('trades')
@@ -99,19 +128,24 @@ def handle_update(data):
         strike = contract.get('strike', 'N/A')
 
         strikes[ticker] = strike
-
         mid_prices[ticker] = mid_price
 
         time = contract.get("time_left_sec")
-        # time in hours using datetime
-        if time is not None:
-            hours = time // 3600
-            minutes = (time % 3600) // 60
-            seconds = time % 60
-            time_left = f"{hours:02}:{minutes:02}:{seconds:02}"
-        else:
-            time = None
+        # time left in seconds, i need float of hours
+        if time is None:
+            time = 0
+        else:           
+            time = time / 3600  # convert to hours 
 
+        bottom_strike, top_strike = list(map(float, strike.split("-")))
+        top_price = binary_call_price(data['simple_average'], top_strike, time, volatility_annualized)
+        bot_price = binary_call_price(data['simple_average'], bottom_strike, time, volatility_annualized)
+        estimated_price = bot_price - top_price
+        estiamted_mid_prices[ticker] = estimated_price
+
+        market_mid_price_iv = implied_vol_binary_call(
+            data['simple_average'], bottom_strike, top_strike, time, estimated_price
+        )
 
         trades = trades.get('trades', [])
 
@@ -121,7 +155,9 @@ def handle_update(data):
             'best_bid': best_bid,
             'best_ask': best_ask,
             'spread': spread,
-            'time_left': time_left,
+            'time_left': time,
+            'all_bids': orderbook[0],
+            'all_asks' : orderbook[1],
         }
 
         print(f"🟩 {ticker} | Bid: {mm_bid} | Ask: {mm_ask} | Spread: {spread:.2f}")
@@ -289,22 +325,29 @@ def handle_update(data):
         else:
             print(f"    ⛔ Cannot tighten spread without crossing.")
 
-        # === Compute PnL
+        # === Compute PnL with fallback to estimated mid price
         pos = positions[ticker]
         avg = avg_prices[ticker]
-        if pos != 0:
-            unreal = (mid_price - avg) * pos
-            total_unrealized += unreal
-        total_realized += realized_pnl[ticker]
 
-    # print(f"\n📊 Positions:")
-    for ticker in positions:
+        # Always prefer estimated mid price if available
+        estimated_mid = estiamted_mid_prices.get(ticker) * 100 # convert to cents
+        if estimated_mid is not None:
+            mid = estimated_mid
+        else:
+            mid = mid_price  # fallback to market mid price
+
+        if pos != 0 and avg is not None and mid is not None:
+            unreal = (mid - avg) * pos
+            # print ticker unrealized stats
+            unrealized_pnl[ticker] = unreal
+
         pos = positions[ticker]
         if pos != 0:
             print(f"  {ticker.split("-")[-1]}: {pos} @ {avg_prices[ticker]:.2f}")
 
+    total_unrealized = sum(unrealized_pnl.values())
     print(f"💰 Realized PnL:   ${total_realized/100:.2f}")
-    print(f"📈 Unrealized PnL: ${total_unrealized/100:.2f}")
+    print(f"📈 Unrealized PnL: ${sum(unrealized_pnl.values())/100:.2f}")
     print(f"📊 Total Trades:         {total_trades}")
     print(f"💸 Expected Spread PnL:  ${total_expected_spread_pnl:.2f}")
     for ticker in expected_spread_pnl:
@@ -318,14 +361,16 @@ def handle_update(data):
     emit_data("dashboard_update", {
         "timestamp": data["timestamp"],
         "market_quotes": market_quotes,
+        "estimated_mid_prices": {k: float(v)*100 for k, v in estiamted_mid_prices.items()},
         "our_quotes": our_quotes,
         "positions": dict(positions),
         "avg_prices": dict(avg_prices),
         "mid_prices": dict(mid_prices),
         "brti_60s_price" : data["simple_average"],
+        "brti_60s_realized_volatility": volatility_annualized,
         "strikes": strikes,
         "realized_pnl": {k: v / 100 for k, v in realized_pnl.items()},
-        "unrealized_pnl": total_unrealized,
+        "unrealized_pnl": {k: v / 100 for k, v in unrealized_pnl.items()},  # in dollars
         "cumulative_pnl": total_unrealized/100 + total_realized/100,
         "total_trades": total_trades,
         "expected_spread_pnl": dict(expected_spread_pnl),

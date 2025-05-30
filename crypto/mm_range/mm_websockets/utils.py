@@ -80,7 +80,7 @@ def get_market_data(ticker):
     }
     return data
 
-def get_orderbook(ticker, cents=True):    
+def get_orderbook(ticker):    
     try: 
         url = f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook"
         headers = {"accept": "application/json"}
@@ -89,72 +89,41 @@ def get_orderbook(ticker, cents=True):
         order_book = json.loads(response.text).get('orderbook', None)
 
         if order_book is None:
-            return None, None
-
-        if cents:
-            divisor = 1
-        else:
-            divisor = 100
+            print(response.text)
+            return None, None, None, None, None
         
         asks = []
         bids = []
 
-        # print(order_book)
-
         if order_book['yes']:
             for price, size in order_book['yes']:
-                bids.append({'price': price/divisor, 'quantity': size})
+                bids.append({'price': price, 'quantity': size})
         if order_book['no']:
             for price, size in order_book['no']:
-                asks.append({'price': (100-price)/divisor, 'quantity': size})
+                asks.append({'price': (100-price), 'quantity': size})
         
-        return bids, asks   
-    
-    except Exception as e:
-        print("❌ Error fetching orderbook:", e)
-        return None, None
-
-def get_top_orderbook(ticker):
-    try: 
-        url = f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook"
-        headers = {"accept": "application/json"}
-        response = requests.get(url, headers=headers)
-        order_book = json.loads(response.text)['orderbook']
-
-        ask_value = 0
-        bid_value = 0
-
-
-        asks = []
-        bids = []
-
-        # print(order_book)
-
-        if order_book['yes']:
-            for price, size in order_book['yes']:
-                bids.append({'price': price/100, 'quantity': size})
-        if order_book['no']:
-            for price, size in order_book['no']:
-                asks.append({'price': (100-price)/100, 'quantity': size})
-                
         sorted_bids = sorted(bids, key=lambda x: -x["price"])  # High to low
         sorted_asks = sorted(asks, key=lambda x: x["price"])   # Low to high
 
-        if len(sorted_bids) == 0:
-            bid_value = 0
-        else:
-            bid_value = sorted_bids[0]['price'] * 100
-        
-        if len(sorted_asks) == 0:
-            ask_value = 100
-        else:
-            ask_value = sorted_asks[0]['price'] * 100
-        
-        return bid_value, ask_value   
 
+        top_ask = sorted_asks[0]['price'] if len(asks) > 0 else 100
+        top_bid = sorted_bids[0]['price'] if len(bids) > 0 else 0
+
+        # identify bids and asks mad eby marketmakers
+        THRESHOLD = 500 # how many contracts to consider as a market maker
+        mm_bids = list(filter(lambda x: x['quantity'] >= THRESHOLD, sorted_bids))
+        mm_asks = list(filter(lambda x: x['quantity'] >= THRESHOLD, sorted_asks))
+
+        mm_bid = mm_bids[0]['price'] if len(mm_bids) > 0 else 0
+        mm_ask = mm_asks[0]['price'] if len(mm_asks) > 0 else 100
+
+        orderbook = (sorted_bids, sorted_asks)
+
+        return orderbook, top_ask, top_bid, mm_bid, mm_ask  
+    
     except Exception as e:
         print("❌ Error fetching orderbook:", e)
-        return None, None
+        return None, None, None, None, None
 
 def binary_call_price(S, K, T_hours, sigma, r=0.0):
     T = T_hours / (365 * 24)  # Convert hours to years

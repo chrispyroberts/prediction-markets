@@ -14,15 +14,15 @@ from concurrent.futures import ThreadPoolExecutor
 
 from utils import (
     get_current_contract_ticker, get_options_chain_for_event, get_moneyness,
-    implied_vol_binary_call, implied_vol_one_touch, get_top_orderbook,
+    implied_vol_binary_call, implied_vol_one_touch, get_orderbook,
     get_contract_trades
 )
 
 # CONTROLS HOW NEAR THE MONEY WE SEE CONTRACTS
-THRESHOLD = 1000
+THRESHOLD = 500 # 4 contracts seems to be the maximum we can do with our rate limits
 
 EVENT = sys.argv[1] if len(sys.argv) > 1 else None
-RUNTIME_SECONDS = int(sys.argv[2]) if len(sys.argv) > 2 else 600
+RUNTIME_SECONDS = int(sys.argv[2]) if len(sys.argv) > 2 else 3600
 USE_ONE_TOUCH = False
 IV_FN = implied_vol_one_touch if USE_ONE_TOUCH else implied_vol_binary_call
 
@@ -71,29 +71,25 @@ def process_contract(contract, brti_price, now_utc):
 
         strike = f"{bottom}-{top}"
         trades = get_contract_trades(ticker)
-        middle = (bottom + top) / 2
+        orderbook, top_ask, top_bid, mm_bid, mm_ask = get_orderbook(ticker)
 
-        top_bid = contract['yes_bid']
-        top_ask = 100 - contract['no_bid']
+        middle = (bottom + top) / 2 
         expiration_time = datetime.fromisoformat(contract['close_time'].replace('Z', '+00:00'))
 
         total_seconds = int((expiration_time - now_utc).total_seconds())
         if total_seconds <= 0:
             return None
         
-
         hours_left = max(total_seconds / 3600, 0.001)
-        moneyness = get_moneyness(brti_price, middle, hours_left)
-        # check if best bid greater than 0 and best ask less than 100
+        moneyness = get_moneyness(brti_price, middle, hours_left)        
 
-        mm_bid, mm_ask = get_top_orderbook(ticker)
         trade_market = True
-        if top_bid is None or top_bid == 0:
+        if top_ask is None or top_ask == 100:
             # no asks, only bids, 
             mid_price = (top_bid + 100) / 2
             spread = 0
             trade_market = False
-        elif top_ask is None or top_ask == 100:
+        elif top_bid is None or top_bid == 0:
             # no bids, only asks
             mid_price = top_ask / 2
             spread = 0
@@ -104,12 +100,14 @@ def process_contract(contract, brti_price, now_utc):
         else:
             raise ValueError("Invalid order book data for contract: " + ticker)
         
+
         return {
             'ticker': ticker,
             'strike': strike,
             'time_left_sec': total_seconds,
             'moneyness': round(moneyness, 2),
             'interest': contract['open_interest'],
+            'orderbook' : orderbook,
             'strike' : strike,
             'best_bid': int(top_bid) if top_bid is not None else None, # convert to int if not none
             'best_ask': int(top_ask) if top_bid is not None else None,
@@ -173,13 +171,10 @@ def poll_brti():
             time.sleep(0.1)
 
 def build_options_payload(brti_price, average, timestamp):
-
     if EVENT is None:
-        event_ticker = get_current_contract_ticker()
-    else:
-        event_ticker = EVENT
+        raise ValueError("No event ticker provided")
 
-    chain_data = get_options_chain_for_event(event_ticker, average, threshold=THRESHOLD)
+    chain_data = get_options_chain_for_event(EVENT, average, threshold=THRESHOLD)
     output = []
     now_utc = datetime.now().astimezone().astimezone(timezone.utc)
 
