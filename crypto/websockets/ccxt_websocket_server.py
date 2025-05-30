@@ -60,4 +60,4 @@ def update_data():
 if __name__ == "__main__":
     print("🚀 Starting Coinbase market WebSocket server on http://localhost:5051 ...")
     threading.Thread(target=update_data, daemon=True).start()
-    socketio.run(app, port=5051)
+    socketio.run(app,  host="127.0.0.1", port=5051)

@@ -11,13 +11,16 @@ const socket = io('http://localhost:5050', {
 
 export default function LivePriceChart() {
   const [data, setData] = useState([]);
+  const [fullData, setFullData] = useState([]);
+  const [vol60s, setVol60s] = useState(null);
+  const [volFull, setVolFull] = useState(null);
 
   useEffect(() => {
     let lastUpdate = 0;
 
     socket.on('brti_and_options_update', (update) => {
       const now = Date.now();
-      if (now - lastUpdate > 100) { // 1 point/sec
+      if (now - lastUpdate > 100) {
         lastUpdate = now;
 
         const newPoint = {
@@ -26,14 +29,46 @@ export default function LivePriceChart() {
           average: update.simple_average
         };
 
+        // Update 60s window
         setData(prev => {
           const updated = [...prev, newPoint];
-          return updated.length > 60 ? updated.slice(-60) : updated;
+          const sliced = updated.length > 60 ? updated.slice(-60) : updated;
+
+          if (sliced.length >= 2) {
+            const returns = sliced
+              .map(p => p.price)
+              .map((p, i, arr) => (i === 0 ? null : Math.log(p / arr[i - 1])))
+              .filter(r => r !== null);
+
+            const std = Math.sqrt(returns.reduce((sum, r) => sum + r ** 2, 0) / (returns.length - 1));
+            const annualized = std * Math.sqrt(60 * 60 * 24 * 365);  // annualize from 1s intervals
+            setVol60s(annualized);
+          }
+
+          return sliced;
+        });
+
+        // Update full window
+        setFullData(prev => {
+          const updated = [...prev, newPoint];
+
+          if (updated.length >= 2) {
+            const returns = updated
+              .map(p => p.price)
+              .map((p, i, arr) => (i === 0 ? null : Math.log(p / arr[i - 1])))
+              .filter(r => r !== null);
+
+            const std = Math.sqrt(returns.reduce((sum, r) => sum + r ** 2, 0) / (returns.length - 1));
+            const annualized = std * Math.sqrt(60 * 60 * 24 * 365);
+            setVolFull(annualized);
+          }
+
+          return updated;
         });
       }
     });
 
-    return () => socket.off('price_update');
+    return () => socket.off('brti_and_options_update');
   }, []);
 
   return (
@@ -70,15 +105,20 @@ export default function LivePriceChart() {
           position: 'absolute',
           top: '2.5rem',
           right: '2rem',
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          padding: '0.5rem 1rem',
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          padding: '0.75rem 1rem',
           borderRadius: '8px',
-          boxShadow: '0 0 5px rgba(0,0,0,0.1)',
-          fontSize: '0.9rem'
+          boxShadow: '0 0 6px rgba(0,0,0,0.1)',
+          fontSize: '0.9rem',
+          lineHeight: '1.5'
         }}>
           <div>💰 <strong>${data.at(-1).price.toFixed(2)}</strong></div>
           <div>📊 Avg: <strong>${data.at(-1).average.toFixed(2)}</strong></div>
           <div>🕒 {data.at(-1).time}</div>
+          <div>📈 RV (60s): <strong>{vol60s !== null ? (vol60s * 100).toFixed(2) + '%' : '—'}</strong></div>
+          <div>📈 RV (Full): <strong>{volFull !== null ? (volFull * 100).toFixed(2) + '%' : '—'}</strong></div>
+          <div>📏 60s Samples: <strong>{data.length}</strong></div>
+          <div>📦 Full Samples: <strong>{fullData.length}</strong></div>
         </div>
       )}
     </div>

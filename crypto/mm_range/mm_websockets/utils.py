@@ -15,13 +15,16 @@ USE_YEARS = True  # Set to True if you want to use years for TTE, False for hour
 
 def get_current_contract_ticker():
 
-    url = "https://api.elections.kalshi.com/trade-api/v2/events?status=open&series_ticker=KXBTCD"
+    url = "https://api.elections.kalshi.com/trade-api/v2/events?status=open&series_ticker=KXBTC"
     headers = {"accept": "application/json"}
     response = requests.get(url, headers=headers)
     data = response.json()
 
     # sort events by strike date
     data['events'].sort(key=lambda x: x['strike_date'])
+
+    for event in data['events']:
+        print(f"Event: {event['event_ticker']} Strike Date: {event['strike_date']}")
 
     # take first ticker 
     first_event = data['events'][0]
@@ -82,7 +85,11 @@ def get_orderbook(ticker, cents=True):
         url = f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}/orderbook"
         headers = {"accept": "application/json"}
         response = requests.get(url, headers=headers)
-        order_book = json.loads(response.text)['orderbook']
+
+        order_book = json.loads(response.text).get('orderbook', None)
+
+        if order_book is None:
+            return None, None
 
         if cents:
             divisor = 1
@@ -117,27 +124,31 @@ def get_top_orderbook(ticker):
         ask_value = 0
         bid_value = 0
 
+
         asks = []
         bids = []
 
         # print(order_book)
-        THRESHOLD = 1000
 
         if order_book['yes']:
             for price, size in order_book['yes']:
-                if size > THRESHOLD:
-                    bids.append({'price': price / 100, 'quantity': size})
-
+                bids.append({'price': price/100, 'quantity': size})
         if order_book['no']:
             for price, size in order_book['no']:
-                if size > THRESHOLD:
-                    asks.append({'price': (100-price)/100, 'quantity': size})
+                asks.append({'price': (100-price)/100, 'quantity': size})
                 
         sorted_bids = sorted(bids, key=lambda x: -x["price"])  # High to low
         sorted_asks = sorted(asks, key=lambda x: x["price"])   # Low to high
 
-        bid_value = f"${sorted_bids[0]["price"] * sorted_bids[0]["quantity"] if sorted_bids else 0:.2f}"
-        ask_value = f"${sorted_asks[0]["price"] * sorted_asks[0]["quantity"] if sorted_asks else 0:.2f}"
+        if len(sorted_bids) == 0:
+            bid_value = 0
+        else:
+            bid_value = sorted_bids[0]['price'] * 100
+        
+        if len(sorted_asks) == 0:
+            ask_value = 100
+        else:
+            ask_value = sorted_asks[0]['price'] * 100
         
         return bid_value, ask_value   
 
@@ -167,20 +178,6 @@ def one_touch_up_price(S, K, T, sigma, r=0.0):
     price = np.exp(-r * T) * (term1 + term2)
     
     return price
-
-# Function to solve: theoretical price - market price = 0
-def implied_vol_binary_call(S, K, T_hours, market_price, r=0.0):
-    if USE_YEARS:
-        # Convert t_hours to years
-        T_hours = T_hours / (365 * 24)  # Convert hours to years
-
-    def objective(sigma):
-        return binary_call_price(S, K, T_hours, sigma, r) - market_price
-
-    try:
-        return brentq(objective, 1e-6, 200.0, xtol=0.01)  # Search for sigma in [0.001, 500%]
-    except ValueError:
-        return np.nan  # No solution found in the interval
 
 def implied_vol_one_touch(S, K, T_hours, market_price, r=0.0, sigma_lower=1e-6, sigma_upper=50.0):
     
@@ -224,12 +221,40 @@ def binary_call_delta(S, K, T_hours, sigma, r=0.0):
     delta = (np.exp(-r * T) * norm.pdf(d2)) / (S * sigma * np.sqrt(T))
     return delta
 
+# Function to solve: theoretical price - market price = 0
+def implied_vol_binary_call(S, K, T_hours, market_price, r=0.0):
+
+    if USE_YEARS:
+        # Convert t_hours to years
+        T_hours = T_hours / (365 * 24)  # Convert hours to years
+
+    def objective(sigma):
+        return binary_call_price(S, K, T_hours, sigma, r) - market_price
+
+    try:
+        return brentq(objective, 1e-6, 200.0, xtol=0.01)  # Search for sigma in [0.001, 500%]
+    except ValueError:
+        return np.nan  # No solution found in the interval
+
 def get_moneyness(S, K, T_hours):
     # convert T_hours to years
     if USE_YEARS:
         T_hours = T_hours / (365 * 24)  # Convert hours to years
     return np.log(S / K) / np.sqrt(T_hours)  # Moneyness = log(Spot Price - Strike Price) / TTE
 
+def get_contract_trades(ticker):
+    try:
+        url =f"https://api.elections.kalshi.com/trade-api/v2/markets/trades?limit=10&ticker={ticker}"
+        headers = {"accept": "application/json"}
+        response = requests.get(url, headers=headers)
+        headers = {"accept": "application/json"}
+        response = requests.get(url, headers=headers)
+
+        data = response.json()
+        return data
+    except Exception as e:
+        print("❌ Error fetching trades:", e)
+        return None
 
 def get_options_chain_for_event(event, brti_price=0, threshold=1000):
     try:
@@ -238,13 +263,25 @@ def get_options_chain_for_event(event, brti_price=0, threshold=1000):
         response = requests.get(url, headers=headers)
 
         chain = []
-        for m in json.loads(response.text)['markets']:
-            strike = (round(m['floor_strike'], 0))
+        res = json.loads(response.text)
 
-            if abs(strike - brti_price) < threshold:
-                chain.append(m)
+        for m in res['markets']:
+            things = m['subtitle'].split(" ")
+
+            try:
+                bottom = float(things[0][1:].replace(',', ''))
+
+                top = float(things[2].replace(',', ''))
+                middle = (bottom + top) / 2
+
+                if abs(middle - brti_price) < threshold:
+                    chain.append(m)
+
+            except Exception as e:
+                continue
 
         return chain    
+    
     except Exception as e:
         print("❌ Error fetching chain:", e)
         return None, None
