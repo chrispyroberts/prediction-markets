@@ -30,10 +30,12 @@ brti_window = [] # List to store last 60 seconds of BRTI prices
 seen_trades = {}
 
 trade_log = []  # List of trade events with per-trade realized pnl
+finalized_trades = []  # List of finalized trades with realized pnl
 cumulative_pnl = defaultdict(float)  # Running realized + unrealized pnl per contract
 
 # === Config ===
 SIZING = 10
+MIN_SPREAD = 4  # Minimum spread in cents
 total_trades = 0
 expected_spread_pnl = defaultdict(float)  # per ticker
 total_expected_spread_pnl = 0.0
@@ -87,6 +89,8 @@ def compute_error_band_quotes(P_fair, absolute_uncertainty=0.05):
     bid = max(0.0, P_fair - absolute_uncertainty)
     ask = min(1.0, P_fair + absolute_uncertainty)
     return bid, ask
+
+
 
 @sio.on('brti_and_options_update')
 def handle_update(data):
@@ -143,10 +147,6 @@ def handle_update(data):
         estimated_price = bot_price - top_price
         estiamted_mid_prices[ticker] = estimated_price
 
-        market_mid_price_iv = implied_vol_binary_call(
-            data['simple_average'], bottom_strike, top_strike, time, estimated_price
-        )
-
         trades = trades.get('trades', [])
 
         market_quotes[ticker] = {
@@ -170,8 +170,16 @@ def handle_update(data):
 
         new_trades = [t for t in trades if t['trade_id'] not in seen_trades[ticker]]
 
+        total_traded = 0
         for trade in new_trades:
             if not(trade_market):
+                continue
+            
+            elif total_trades >= SIZING:
+                print(f"    ⏹️ Max trades reached for {ticker}. Skipping further trades.")
+                # add trade to seen trades to avoid processing again
+                trade_id = trade['trade_id']
+                seen_trades[ticker].add(trade_id)
                 continue
 
             print(f"    🟢 New trade: {trade['count']} contracts @ {trade['yes_price']}  [TAKER: {trade['taker_side']}]")
@@ -206,6 +214,7 @@ def handle_update(data):
             
 
             if filled:
+                total_traded += abs(count)
                 if side == 'buy':
                     realized = 0.0
                     filled = 0
@@ -301,7 +310,7 @@ def handle_update(data):
                 print(f"    🔍 TRADE @ {price:.2f} not inside our market.")
 
         # Save latest quote to compare next round
-        if int(spread) <= 2:
+        if int(spread) <= MIN_SPREAD:
             new_bid = None
             new_ask = None 
         else:
@@ -378,6 +387,50 @@ def handle_update(data):
         "quotes": our_quotes,
         "trade_log": trade_log[-100:]
     })
+    
+@sio.on('final_itm_market')
+def handle_finalized_outcomes(data):
+    global finalized_trades, trade_log, positions, avg_prices, realized_pnl, cumulative_pnl, unrealized_pnl, global_total_cumulative_pnl
+    timestamp = data.get('timestamp', time.time())
+    yes_market = data.get('yes_market', None)
+
+    print("🔄 Market Finalized. Processing outcomes.")
+    print(f"📊 Final ITM Contract: {yes_market} at {timestamp}")
+
+    for ticker, pos in positions.items():
+        if pos == 0:
+            continue
+
+        # Outcome is 1 (100 payout) if it is the yes_market
+        result = 100 if ticker == yes_market else 0
+        avg_entry = avg_prices.get(ticker, 0.0)
+
+        final_pnl = (result - avg_entry) * pos
+        realized_pnl[ticker] += final_pnl
+        cumulative_pnl[ticker] += final_pnl
+
+        print(f"🔚 {ticker}: Closed position {pos} @ avg {avg_entry:.2f} -> Outcome: {result} | Final PnL: {final_pnl/100:.2f}")
+    
+    # Emit final summary
+    cumulative_total_pnl = sum(realized_pnl.values()) / 100
+    expected_edge = sum(expected_spread_pnl.values())    
+
+    # Update trade log with final outcomes and move to finalized_trades
+    for trade in trade_log:
+        ticker = trade['ticker']
+        trade['expired'] = True
+        trade['outcome'] = 1 if ticker == yes_market else 0
+        finalized_trades.append(trade)
+
+    print(f"📈 Total Cumulative PnL: ${cumulative_total_pnl:.2f} | Expected Edge: ${expected_edge:.2f}")
+    print(f"📊 Finalized Trades: {len(finalized_trades)}")
+    print(f"📊 Expected Spread PnL: {total_expected_spread_pnl:.2f}")
+    print("=" * 50)
+
+    # TODO: Implement logic to SAVE this information somewhere in like a CSV, then restart the test_trading file the dashboard. 
+    # then can just make another dashboard for visualizing results
+
+    return finalized_trades, cumulative_total_pnl, expected_edge
 
 def start_sio_client():
     sio.connect("http://localhost:5050", transports=["websocket"])

@@ -12,9 +12,9 @@ import numpy as np
 session = requests.Session()
 
 USE_YEARS = True  # Set to True if you want to use years for TTE, False for hours
+MM_THRESHOLD = 300  # Threshold for market maker detection
 
-def get_current_contract_ticker():
-
+def get_current_event_ticker():
     url = "https://api.elections.kalshi.com/trade-api/v2/events?status=open&series_ticker=KXBTC"
     headers = {"accept": "application/json"}
     response = requests.get(url, headers=headers)
@@ -110,9 +110,8 @@ def get_orderbook(ticker):
         top_bid = sorted_bids[0]['price'] if len(bids) > 0 else 0
 
         # identify bids and asks mad eby marketmakers
-        THRESHOLD = 500 # how many contracts to consider as a market maker
-        mm_bids = list(filter(lambda x: x['quantity'] >= THRESHOLD, sorted_bids))
-        mm_asks = list(filter(lambda x: x['quantity'] >= THRESHOLD, sorted_asks))
+        mm_bids = list(filter(lambda x: x['quantity'] >= MM_THRESHOLD, sorted_bids))
+        mm_asks = list(filter(lambda x: x['quantity'] >= MM_THRESHOLD, sorted_asks))
 
         mm_bid = mm_bids[0]['price'] if len(mm_bids) > 0 else 0
         mm_ask = mm_asks[0]['price'] if len(mm_asks) > 0 else 100

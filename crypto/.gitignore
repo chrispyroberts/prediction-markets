@@ -2,3 +2,8 @@
 .env
 *.key
 *.pem
+**/.private_key
+**/.public_key
+**/.private_key_demo
+**/.public_key_demo
+

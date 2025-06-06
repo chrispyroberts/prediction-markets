@@ -155,6 +155,10 @@ def poll_brti():
                     # Build combined payload
                     combined_payload = build_options_payload(price, average, timestamp)
 
+                    if combined_payload is None:
+                        print(f"⚠️ No options data available for price {price} at {timestamp}.")
+                        continue
+
                     brti_data = {
                         'brti': price,
                         'simple_average': average,
@@ -171,10 +175,31 @@ def poll_brti():
             time.sleep(0.1)
 
 def build_options_payload(brti_price, average, timestamp):
+    global EVENT
     if EVENT is None:
         raise ValueError("No event ticker provided")
 
     chain_data = get_options_chain_for_event(EVENT, average, threshold=THRESHOLD)
+
+    # check if all statuses are are finalized to do exit logic
+    if all(m['status'] == 'finalized' for m in chain_data):
+        print(f"🔄 Market closed. Getting new Event ticker")
+        EVENT = get_current_contract_ticker()
+        market_outcomes = [(m['ticker'], m['result']) for m in chain_data if m['status'] == 'finalized']
+        
+        yes_market = None
+        for t, o in market_outcomes:
+            if o == 'yes':
+                yes_market = t
+
+        print(f"📊 Final ITM Contract {yes_market}. Emitting data.")
+        socketio.emit('final_itm_market', {
+                        "timestamp": timestamp,
+                        "yes_market": yes_market
+                    })
+        
+        return None
+
     output = []
     now_utc = datetime.now().astimezone().astimezone(timezone.utc)
 
