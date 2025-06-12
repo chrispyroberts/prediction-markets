@@ -122,7 +122,12 @@ async def kalshi_ws_stream(market_tickers):
                     debug_print(f"📈 Delta for {ticker}: {msg}")
                 elif msg_type == "trade":
                     trades[ticker].append(msg)
-                    print(f"💹 Trade on {ticker}: {msg['count']} contracts at {msg['yes_price']} by {msg['taker_side']} @ {msg['ts']}")
+                    if msg["taker_side"] == "yes":
+                        side = "Buy"
+                    else:
+                        side= "Sell"
+                    print(f"💹 Trade on {ticker}: {side} {msg['count']} contracts at {msg['yes_price']} @ {msg['ts']}")
+
                 elif msg_type == "fill":
                     fills[ticker].append(msg)
                     print(f"💰 Fill on {ticker}: {msg['count']} contracts at {msg['yes_price']} ({msg['side']}) by {msg['action']} @ {msg['ts']}")
