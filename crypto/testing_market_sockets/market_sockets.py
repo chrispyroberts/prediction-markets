@@ -2,7 +2,7 @@ import asyncio
 import websockets
 import json
 import time
-from utils import sign_pss_text, private_key_obj, KALSHI_API_KEY_ID, get_current_event, get_markets_from_event
+from testing_market_sockets.utils import sign_pss_text, private_key_obj, KALSHI_API_KEY_ID, get_current_event, get_markets_from_event
 
 DEBUG = False
 

@@ -13,7 +13,7 @@ from playwright.sync_api import sync_playwright
 from concurrent.futures import ThreadPoolExecutor
 
 from utils import (
-    get_current_contract_ticker, get_options_chain_for_event, get_moneyness,
+    get_current_event_ticker, get_options_chain_for_event, get_moneyness,
     implied_vol_binary_call, implied_vol_one_touch, get_orderbook,
     get_contract_trades
 )
@@ -224,7 +224,7 @@ if __name__ == "__main__":
 
     if EVENT is None:
         print("🔍 No event ticker provided. Fetching current contract ticker...")
-        EVENT = get_current_contract_ticker()
+        EVENT = get_current_event_ticker()
 
     print(f"🌐 Serving brti_and_options_update on http://localhost:5050 for {EVENT}...")
     socketio.run(app, host="127.0.0.1", port=5050)
