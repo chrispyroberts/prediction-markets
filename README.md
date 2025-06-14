@@ -2,7 +2,7 @@ I'm building some tools for trading and analysis of BTC hourly options on [Kalhs
 
 Major feature updates (descending order of most recently added)
 - [BRTI Tracking](brti_tracking.md)
-- [Copy MM simulation](copy_market_making.md)
+- [Copy market making with simulation on real-time market data](copy_market_making.md)
 
 
 ## More Sections (kinda outdated)
