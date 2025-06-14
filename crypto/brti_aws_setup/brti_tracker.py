@@ -105,8 +105,7 @@ def poll_brti():
             try:
                 price_text = page.locator('div.leading-6 span').first.text_content()
                 price = float(price_text.replace('$', '').replace(',', ''))
-                timestamp_dt = datetime.now().astimezone(est)
-                timestamp = timestamp_dt.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                timestamp = datetime.now().astimezone(est)
 
                 latest_price['last_update_time'] = time.time()
 
