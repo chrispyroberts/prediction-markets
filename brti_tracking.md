@@ -1,9 +1,3 @@
-Ah — got it! Here's a high-level summary of what you just built:
-
----
-
-### ✅ Summary: Your BRTI Tracking & Visualization System
-
 * **📡 Real-time price scraper**
 
   * Uses `Playwright` to poll BRTI index every \~0.3s
