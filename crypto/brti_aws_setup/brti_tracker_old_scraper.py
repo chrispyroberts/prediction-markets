@@ -28,7 +28,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-# === Shared state ===
 watchdog_enabled = threading.Event()
 latest_price = {
     'value': None,
@@ -37,10 +36,9 @@ latest_price = {
     'last_update_time': time.time()
 }
 script_start_time = time.time()
+max_runtime_seconds = 20 * 60  # ⏱ Auto-restart after 20 minutes
 est = timezone('US/Eastern')
-
 conn = None
-
 
 def connect_to_db():
     global conn
@@ -48,9 +46,10 @@ def connect_to_db():
         try:
             logging.info("📡 Attempting PostgreSQL connection...")
             conn = psycopg2.connect(
-                host="localhost",
-                dbname="brti",
-                user="ubuntu"
+                host=DB_HOST,
+                dbname=DB_NAME,
+                user=DB_USER,
+                port=DB_PORT
             )
             conn.autocommit = True
             logging.info("✅ Connected to PostgreSQL.")
@@ -59,29 +58,25 @@ def connect_to_db():
             logging.warning(f"⏳ PostgreSQL connection failed. Retrying in 5s... Error: {e}")
             time.sleep(5)
 
-
 def insert_to_db(price, sma, timestamp):
     global conn
     try:
         with conn.cursor() as cur:
             cur.execute(
                 "INSERT INTO brti_prices (price, simple_average, timestamp) VALUES (%s, %s, %s)",
-                (float(price), float(sma), timestamp)  # <-- fix here
+                (float(price), float(sma), timestamp)
             )
     except (Exception, OperationalError) as e:
         logging.error(f"❌ Database error during insert: {e}")
         connect_to_db()
 
-
-
 def safe_restart():
     try:
-        logging.warning("🔁 Restarting script due to inactivity.")
+        logging.warning("🔁 Restarting script...")
         os.execv(sys.executable, ['python'] + sys.argv)
     except Exception as e:
         logging.critical(f"💥 Failed to restart script: {e}")
         sys.exit(1)
-
 
 def poll_brti():
     logging.info("🌀 Starting BRTI polling loop...")
@@ -91,12 +86,13 @@ def poll_brti():
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         try:
-            page.goto("https://www.cfbenchmarks.com/data/indices/BRTI", timeout=20000)
+            page.goto("https://www.cfbenchmarks.com/data/indices/BRTI", timeout=5000)
             page.wait_for_selector('div.leading-6 span')
             logging.info("📡 Connected to BRTI page.")
         except Exception as e:
             logging.error(f"❌ Failed to load BRTI page: {e}")
             browser.close()
+            safe_restart()
             return
 
         last_logged_price = None
@@ -105,7 +101,7 @@ def poll_brti():
             try:
                 price_text = page.locator('div.leading-6 span').first.text_content()
                 price = float(price_text.replace('$', '').replace(',', ''))
-                timestamp = datetime.now().astimezone(est)
+                timestamp_dt = datetime.now().astimezone(est)
 
                 latest_price['last_update_time'] = time.time()
 
@@ -121,7 +117,7 @@ def poll_brti():
 
                     sma = np.mean(latest_price['simple_average'])
                     latest_price['value'] = price
-                    latest_price['timestamp'] = timestamp
+                    latest_price['timestamp'] = timestamp_dt
 
                     process = psutil.Process(os.getpid())
                     mem_total = process.memory_info().rss
@@ -133,13 +129,16 @@ def poll_brti():
                     mem_mb = mem_total / 1024 / 1024    
 
                     logging.info(f"📈 BRTI: {price:.2f} | SMA(60): {sma:.2f} | Mem: {mem_mb:.2f}MB ")
-                    insert_to_db(price, sma, timestamp)
-         
+                    insert_to_db(price, sma, timestamp_dt)
+
+                if time.time() - script_start_time > max_runtime_seconds:
+                    logging.info("🕒 20 minutes elapsed. Restarting script to ensure stability.")
+                    safe_restart()
+
             except Exception as e:
                 logging.error(f"⚠️ Error in polling loop: {e}")
 
             time.sleep(0.3)
-
 
 def watchdog(timeout_seconds=5):
     logging.info("⏳ Watchdog waiting for first price update...")
@@ -152,7 +151,6 @@ def watchdog(timeout_seconds=5):
             logging.error(f"⏱️ No price update in {elapsed:.2f}s. Restarting...")
             safe_restart()
         time.sleep(1)
-
 
 if __name__ == "__main__":
     threading.Thread(target=watchdog, daemon=True).start()

@@ -1,0 +1,204 @@
+2025-06-15 12:56:09,426 - INFO - <module>:585 - ==================================================
+2025-06-15 12:56:09,426 - INFO - <module>:586 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 12:56:09,426 - INFO - <module>:587 - Platform: win32
+2025-06-15 12:56:09,426 - INFO - <module>:588 - PID: 29480
+2025-06-15 12:56:09,427 - INFO - <module>:589 - ==================================================
+2025-06-15 13:13:39,058 - INFO - signal_handler:255 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:13:40,041 - INFO - run_production_fetcher:567 -    Total runtime: 0.3 hours
+2025-06-15 13:13:40,051 - INFO - run_production_fetcher:568 -    Sessions: 1
+2025-06-15 13:14:56,278 - INFO - <module>:584 - PRODUCTION COINBASE CANDLE FETCHER
+2025-06-15 13:14:56,278 - INFO - <module>:585 - ==================================================
+2025-06-15 13:14:56,278 - INFO - <module>:586 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 13:14:56,278 - INFO - <module>:587 - Platform: win32
+2025-06-15 13:14:56,278 - INFO - <module>:588 - PID: 22876
+2025-06-15 13:14:56,279 - INFO - <module>:589 - ==================================================
+2025-06-15 13:14:56,279 - INFO - run_production_fetcher:500 - Testing product variants...
+2025-06-15 13:14:56,358 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:14:56,484 - INFO - validate_product_id:282 - Product BTC-PERP-INTX validated successfully
+2025-06-15 13:14:56,485 - INFO - shutdown:475 - Starting graceful shutdown...
+2025-06-15 13:14:56,488 - INFO - close:136 - HTTPS connection closed
+2025-06-15 13:14:56,489 - INFO - shutdown:491 - Graceful shutdown complete
+2025-06-15 13:14:56,489 - INFO - run_production_fetcher:519 - Using validated product: BTC-PERP-INTX
+2025-06-15 13:14:56,489 - INFO - run_production_fetcher:530 - Starting session #1
+2025-06-15 13:14:56,490 - INFO - run_aligned_updater:414 - Starting production candle fetcher...
+2025-06-15 13:14:56,574 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:14:56,599 - INFO - validate_product_id:282 - Product BTC-PERP-INTX validated successfully
+2025-06-15 13:14:56,599 - INFO - run_aligned_updater:421 - Product BTC-PERP-INTX validated. Starting data collection...
+2025-06-15 13:15:03,496 - INFO - signal_handler:255 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:15:04,195 - INFO - run_aligned_updater:471 - Main update loop exited
+2025-06-15 13:15:04,196 - INFO - shutdown:475 - Starting graceful shutdown...
+2025-06-15 13:15:04,199 - INFO - close:136 - HTTPS connection closed
+2025-06-15 13:15:04,200 - INFO - shutdown:491 - Graceful shutdown complete
+2025-06-15 13:15:04,200 - INFO - run_production_fetcher:566 - FINAL STATISTICS:
+2025-06-15 13:15:04,200 - INFO - run_production_fetcher:567 -    Total runtime: 0.0 hours
+2025-06-15 13:15:04,201 - INFO - run_production_fetcher:568 -    Sessions: 1
+2025-06-15 13:15:04,201 - INFO - run_production_fetcher:569 - Production fetcher shutdown complete
+2025-06-15 13:15:04,201 - INFO - <module>:600 - Application terminated
+2025-06-15 13:15:08,054 - INFO - <module>:584 - PRODUCTION COINBASE CANDLE FETCHER
+2025-06-15 13:15:08,054 - INFO - <module>:585 - ==================================================
+2025-06-15 13:15:08,054 - INFO - <module>:586 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 13:15:08,054 - INFO - <module>:587 - Platform: win32
+2025-06-15 13:15:08,054 - INFO - <module>:588 - PID: 8480
+2025-06-15 13:15:08,054 - INFO - <module>:589 - ==================================================
+2025-06-15 13:15:08,054 - INFO - run_production_fetcher:500 - Testing product variants...
+2025-06-15 13:15:08,132 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:15:08,301 - INFO - validate_product_id:282 - Product BTC-PERP-INTX validated successfully
+2025-06-15 13:15:08,301 - INFO - shutdown:475 - Starting graceful shutdown...
+2025-06-15 13:15:08,304 - INFO - close:136 - HTTPS connection closed
+2025-06-15 13:15:08,304 - INFO - shutdown:491 - Graceful shutdown complete
+2025-06-15 13:15:08,304 - INFO - run_production_fetcher:519 - Using validated product: BTC-PERP-INTX
+2025-06-15 13:15:08,305 - INFO - run_production_fetcher:530 - Starting session #1
+2025-06-15 13:15:08,305 - INFO - run_aligned_updater:414 - Starting production candle fetcher...
+2025-06-15 13:15:08,406 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:15:08,442 - INFO - validate_product_id:282 - Product BTC-PERP-INTX validated successfully
+2025-06-15 13:15:08,443 - INFO - run_aligned_updater:421 - Product BTC-PERP-INTX validated. Starting data collection...
+2025-06-15 13:16:00,555 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:17:01,064 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:18:00,540 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:19:00,810 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:20:00,300 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:21:00,766 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:22:01,025 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:23:00,303 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:24:00,639 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:25:00,914 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:26:00,372 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:27:00,693 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:28:00,198 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:29:00,521 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:30:00,842 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:31:00,811 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:32:00,335 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:33:00,693 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:34:01,052 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:35:00,376 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:36:00,887 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:37:00,270 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:38:00,581 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:39:01,072 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:40:00,388 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:41:00,177 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:42:00,512 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:43:00,819 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:44:00,337 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:45:00,667 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:46:00,601 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:47:00,876 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:48:00,261 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:49:00,783 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:50:00,303 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:51:00,865 - INFO - get_connection:97 - HTTPS connection established to api.coinbase.com
+2025-06-15 13:51:12,591 - INFO - signal_handler:255 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:13,076 - INFO - run_aligned_updater:471 - Main update loop exited
+2025-06-15 13:51:13,077 - INFO - shutdown:475 - Starting graceful shutdown...
+2025-06-15 13:51:13,083 - INFO - close:136 - HTTPS connection closed
+2025-06-15 13:51:13,084 - INFO - shutdown:491 - Graceful shutdown complete
+2025-06-15 13:51:13,085 - INFO - run_production_fetcher:566 - FINAL STATISTICS:
+2025-06-15 13:51:13,085 - INFO - run_production_fetcher:567 -    Total runtime: 0.6 hours
+2025-06-15 13:51:13,086 - INFO - run_production_fetcher:568 -    Sessions: 1
+2025-06-15 13:51:13,086 - INFO - run_production_fetcher:569 - Production fetcher shutdown complete
+2025-06-15 13:51:13,087 - INFO - <module>:600 - Application terminated
+2025-06-15 14:03:23,250 - INFO - <module>:633 - PRODUCTION COINBASE CANDLE FETCHER
+2025-06-15 14:03:23,251 - INFO - <module>:634 - ==================================================
+2025-06-15 14:03:23,251 - INFO - <module>:635 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 14:03:23,251 - INFO - <module>:636 - Platform: win32
+2025-06-15 14:03:23,251 - INFO - <module>:637 - PID: 30600
+2025-06-15 14:03:23,251 - INFO - <module>:638 - ==================================================
+2025-06-15 14:03:23,251 - INFO - bulletproof_runner:22 - Bulletproof restart #1
+2025-06-15 14:03:23,252 - INFO - run_production_fetcher:538 - Testing product variants...
+2025-06-15 14:03:23,252 - WARNING - setup_signal_handlers:298 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:03:23,356 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:03:23,687 - INFO - validate_product_id:318 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:03:23,687 - INFO - shutdown:513 - Starting graceful shutdown...
+2025-06-15 14:03:23,688 - INFO - close:168 - HTTPS connection closed
+2025-06-15 14:03:23,688 - INFO - shutdown:529 - Graceful shutdown complete
+2025-06-15 14:03:23,688 - INFO - run_production_fetcher:557 - Using validated product: BTC-PERP-INTX
+2025-06-15 14:03:23,688 - INFO - run_production_fetcher:568 - Starting session #1
+2025-06-15 14:03:23,688 - WARNING - setup_signal_handlers:298 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:03:23,689 - INFO - run_aligned_updater:450 - Starting production candle fetcher...
+2025-06-15 14:03:23,772 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:03:23,816 - INFO - validate_product_id:318 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:03:23,817 - INFO - run_aligned_updater:457 - Product BTC-PERP-INTX validated. Starting data collection...
+2025-06-15 14:04:00,893 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:05:00,485 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:06:01,045 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:07:00,364 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:08:00,650 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:09:00,936 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:10:00,545 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:11:00,343 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:12:00,597 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:13:00,925 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:14:00,194 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:15:00,654 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:16:00,518 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:17:01,056 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:18:00,725 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:19:01,092 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:20:00,638 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:21:00,311 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:22:00,794 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:23:00,126 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:24:00,644 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:25:00,927 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:26:00,593 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:27:00,863 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:28:00,150 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:29:00,698 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:30:01,042 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:31:00,929 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:32:00,426 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:33:00,766 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:34:01,056 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:35:00,344 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:36:01,051 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:37:00,371 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:38:00,674 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:39:00,990 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:40:00,287 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:41:00,953 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:42:00,278 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:43:00,573 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:44:00,845 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:45:00,339 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:46:01,003 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:47:00,293 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:48:00,615 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:49:01,097 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:50:00,488 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:51:01,010 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:52:00,406 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:53:00,735 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:54:00,350 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:55:00,675 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:56:00,325 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:57:00,689 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:58:01,077 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 14:59:00,465 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:00:00,990 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:01:01,056 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:02:00,608 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:03:00,194 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:04:00,584 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:05:01,125 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:06:01,151 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:07:00,491 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:08:01,063 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:09:00,442 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:10:00,983 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:11:00,656 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:12:01,021 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:13:00,577 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:14:01,038 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:15:00,555 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:16:00,361 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:17:00,714 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:18:01,066 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:19:00,420 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:20:00,788 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:21:01,136 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:22:00,536 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:23:00,905 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:24:00,378 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:25:00,887 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com
+2025-06-15 15:26:00,537 - INFO - get_connection:129 - HTTPS connection established to api.coinbase.com

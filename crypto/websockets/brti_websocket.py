@@ -68,8 +68,8 @@ def poll_brti():
                         'timestamp': timestamp
                     }
 
-                    print(f"📢 Emitting price_update: {update_payload}")
-                    print(f"👥 Active connected clients: {list(active_clients)}")
+                    print(f"📢 Emitting price_update: {price}")
+                    # print(f"👥 Active connected clients: {list(active_clients)}")
 
                     # Emit to all clients (for debugging)
                     socketio.emit('price_update', update_payload)

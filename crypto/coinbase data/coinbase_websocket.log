@@ -1,0 +1,180 @@
+2025-06-15 13:49:30,876 - INFO - <module>:952 -  Dependencies verified
+2025-06-15 13:49:30,876 - INFO - <module>:959 - PRODUCTION COINBASE WEBSOCKET CLIENT
+2025-06-15 13:49:30,877 - INFO - <module>:960 - ==================================================
+2025-06-15 13:49:30,877 - INFO - <module>:961 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 13:49:30,877 - INFO - <module>:962 - Platform: win32
+2025-06-15 13:49:30,877 - INFO - <module>:963 - PID: 17188
+2025-06-15 13:49:30,877 - INFO - <module>:964 - ==================================================
+2025-06-15 13:49:30,882 - INFO - <module>:984 -  Application terminated
+2025-06-15 13:49:58,817 - INFO - <module>:952 -  Dependencies verified
+2025-06-15 13:49:58,817 - INFO - <module>:959 - PRODUCTION COINBASE WEBSOCKET CLIENT
+2025-06-15 13:49:58,817 - INFO - <module>:960 - ==================================================
+2025-06-15 13:49:58,817 - INFO - <module>:961 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 13:49:58,817 - INFO - <module>:962 - Platform: win32
+2025-06-15 13:49:58,817 - INFO - <module>:963 - PID: 8952
+2025-06-15 13:49:58,817 - INFO - <module>:964 - ==================================================
+2025-06-15 13:49:58,818 - INFO - bulletproof_runner:30 -  Bulletproof restart #1
+2025-06-15 13:49:58,819 - INFO - run_production_client:836 -  PRODUCTION MODE - Order Book + Trade Tracker Starting...
+2025-06-15 13:49:58,819 - INFO - run_production_client:837 -    - Infinite retry logic enabled
+2025-06-15 13:49:58,819 - INFO - run_production_client:838 -    - Comprehensive error handling active
+2025-06-15 13:49:58,819 - INFO - run_production_client:839 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 13:49:58,820 - INFO - run_production_client:844 -  Testing product connectivity...
+2025-06-15 13:49:59,253 - INFO - get_rest_api_data_safe:816 -  Product BTC-PERP-INTX exists and is accessible
+2025-06-15 13:49:59,254 - INFO - run_production_client:855 -  Using confirmed product: BTC-PERP-INTX
+2025-06-15 13:49:59,254 - INFO - run_production_client:866 -  Starting session #1
+2025-06-15 13:49:59,255 - INFO - connect_with_retry:253 - Connection attempt 1/50 to wss://advanced-trade-ws.coinbase.com
+2025-06-15 13:49:59,750 - INFO - connect_with_retry:279 - WebSocket connected successfully
+2025-06-15 13:49:59,750 - INFO - subscribe_to_market_data:313 -  Subscribing to level2 for BTC-PERP-INTX
+2025-06-15 13:50:00,765 - INFO - subscribe_to_market_data:313 -  Subscribing to market_trades for BTC-PERP-INTX
+2025-06-15 13:50:01,768 - INFO - subscribe_to_market_data:332 - Successfully subscribed to 2/2 channels
+2025-06-15 13:50:01,768 - INFO - run_production_client:884 -  Session started successfully. Beginning data collection...
+2025-06-15 13:50:01,768 - INFO - listen_for_messages:344 - PRODUCTION MODE: Tracking BTC-PERP-INTX order book with trade aggregation...
+2025-06-15 13:50:01,769 - INFO - listen_for_messages:345 -    Robust error handling enabled. Will continue running indefinitely.
+2025-06-15 13:50:01,777 - INFO - _handle_l2_update_safe:463 -  Order book initialized - Spread: $0.10
+2025-06-15 13:50:01,778 - INFO - _handle_subscription_confirmation_safe:444 -  Confirmed subscription - level2: ['BTC-PERP-INTX']
+2025-06-15 13:50:01,814 - INFO - _handle_subscription_confirmation_safe:444 -  Confirmed subscription - level2: ['BTC-PERP-INTX']
+2025-06-15 13:50:01,814 - INFO - _handle_subscription_confirmation_safe:444 -  Confirmed subscription - market_trades: ['BTC-PERP-INTX']
+2025-06-15 13:50:05,489 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:50:05,616 - WARNING - run_production_client:893 -  Session #1 ended after 6.4s
+2025-06-15 13:50:05,617 - INFO - run_production_client:894 -  Total uptime: 0.0 hours across 1 sessions
+2025-06-15 13:50:05,617 - INFO - run_production_client:898 -  Graceful shutdown requested
+2025-06-15 13:50:05,618 - INFO - run_production_client:930 -  FINAL STATISTICS:
+2025-06-15 13:50:05,619 - INFO - run_production_client:931 -    Total runtime: 0.0 hours
+2025-06-15 13:50:05,619 - INFO - run_production_client:932 -    Active uptime: 0.0 hours (100.0%)
+2025-06-15 13:50:05,620 - INFO - run_production_client:933 -    Sessions: 1
+2025-06-15 13:50:05,620 - INFO - run_production_client:934 -    Average session duration: 0.1 minutes
+2025-06-15 13:50:05,621 - INFO - run_production_client:935 -  Production client shutdown complete
+2025-06-15 13:50:05,621 - WARNING - bulletproof_runner:37 - Main client function exited - this should not happen!
+2025-06-15 13:50:05,622 - INFO - bulletproof_runner:53 -  Bulletproof restart in 5 seconds...
+2025-06-15 13:50:10,622 - INFO - bulletproof_runner:30 -  Bulletproof restart #2
+2025-06-15 13:50:10,623 - INFO - run_production_client:836 -  PRODUCTION MODE - Order Book + Trade Tracker Starting...
+2025-06-15 13:50:10,624 - INFO - run_production_client:837 -    - Infinite retry logic enabled
+2025-06-15 13:50:10,624 - INFO - run_production_client:838 -    - Comprehensive error handling active
+2025-06-15 13:50:10,624 - INFO - run_production_client:839 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 13:50:10,624 - INFO - run_production_client:844 -  Testing product connectivity...
+2025-06-15 13:50:10,946 - INFO - get_rest_api_data_safe:816 -  Product BTC-PERP-INTX exists and is accessible
+2025-06-15 13:50:10,946 - INFO - run_production_client:855 -  Using confirmed product: BTC-PERP-INTX
+2025-06-15 13:50:10,947 - INFO - run_production_client:866 -  Starting session #1
+2025-06-15 13:50:10,947 - INFO - connect_with_retry:253 - Connection attempt 1/50 to wss://advanced-trade-ws.coinbase.com
+2025-06-15 13:50:11,403 - INFO - connect_with_retry:279 - WebSocket connected successfully
+2025-06-15 13:50:11,403 - INFO - subscribe_to_market_data:313 -  Subscribing to level2 for BTC-PERP-INTX
+2025-06-15 13:50:12,417 - INFO - subscribe_to_market_data:313 -  Subscribing to market_trades for BTC-PERP-INTX
+2025-06-15 13:50:13,419 - INFO - subscribe_to_market_data:332 - Successfully subscribed to 2/2 channels
+2025-06-15 13:50:13,419 - INFO - run_production_client:884 -  Session started successfully. Beginning data collection...
+2025-06-15 13:50:13,419 - INFO - listen_for_messages:344 - PRODUCTION MODE: Tracking BTC-PERP-INTX order book with trade aggregation...
+2025-06-15 13:50:13,420 - INFO - listen_for_messages:345 -    Robust error handling enabled. Will continue running indefinitely.
+2025-06-15 13:50:13,424 - INFO - _handle_l2_update_safe:463 -  Order book initialized - Spread: $0.10
+2025-06-15 13:50:13,426 - INFO - _handle_subscription_confirmation_safe:444 -  Confirmed subscription - level2: ['BTC-PERP-INTX']
+2025-06-15 13:50:13,430 - INFO - _handle_subscription_confirmation_safe:444 -  Confirmed subscription - level2: ['BTC-PERP-INTX']
+2025-06-15 13:50:13,430 - INFO - _handle_subscription_confirmation_safe:444 -  Confirmed subscription - market_trades: ['BTC-PERP-INTX']
+2025-06-15 13:51:13,153 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:13,262 - WARNING - run_production_client:893 -  Session #1 ended after 62.3s
+2025-06-15 13:51:13,262 - INFO - run_production_client:894 -  Total uptime: 0.0 hours across 1 sessions
+2025-06-15 13:51:13,263 - INFO - run_production_client:898 -  Graceful shutdown requested
+2025-06-15 13:51:13,263 - INFO - run_production_client:930 -  FINAL STATISTICS:
+2025-06-15 13:51:13,263 - INFO - run_production_client:931 -    Total runtime: 0.0 hours
+2025-06-15 13:51:13,264 - INFO - run_production_client:932 -    Active uptime: 0.0 hours (100.0%)
+2025-06-15 13:51:13,264 - INFO - run_production_client:933 -    Sessions: 1
+2025-06-15 13:51:13,264 - INFO - run_production_client:934 -    Average session duration: 1.0 minutes
+2025-06-15 13:51:13,265 - INFO - run_production_client:935 -  Production client shutdown complete
+2025-06-15 13:51:13,265 - WARNING - bulletproof_runner:37 - Main client function exited - this should not happen!
+2025-06-15 13:51:13,265 - INFO - bulletproof_runner:53 -  Bulletproof restart in 10 seconds...
+2025-06-15 13:51:16,572 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:20,568 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:21,246 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:21,535 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:21,699 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:23,266 - INFO - bulletproof_runner:30 -  Bulletproof restart #3
+2025-06-15 13:51:23,266 - INFO - run_production_client:836 -  PRODUCTION MODE - Order Book + Trade Tracker Starting...
+2025-06-15 13:51:23,266 - INFO - run_production_client:837 -    - Infinite retry logic enabled
+2025-06-15 13:51:23,266 - INFO - run_production_client:838 -    - Comprehensive error handling active
+2025-06-15 13:51:23,267 - INFO - run_production_client:839 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 13:51:23,267 - INFO - run_production_client:844 -  Testing product connectivity...
+2025-06-15 13:51:23,632 - INFO - get_rest_api_data_safe:816 -  Product BTC-PERP-INTX exists and is accessible
+2025-06-15 13:51:23,633 - INFO - run_production_client:855 -  Using confirmed product: BTC-PERP-INTX
+2025-06-15 13:51:23,634 - INFO - run_production_client:866 -  Starting session #1
+2025-06-15 13:51:23,635 - INFO - connect_with_retry:253 - Connection attempt 1/50 to wss://advanced-trade-ws.coinbase.com
+2025-06-15 13:51:24,095 - INFO - connect_with_retry:279 - WebSocket connected successfully
+2025-06-15 13:51:24,096 - INFO - subscribe_to_market_data:313 -  Subscribing to level2 for BTC-PERP-INTX
+2025-06-15 13:51:25,105 - INFO - subscribe_to_market_data:313 -  Subscribing to market_trades for BTC-PERP-INTX
+2025-06-15 13:51:25,383 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:26,110 - INFO - subscribe_to_market_data:332 - Successfully subscribed to 2/2 channels
+2025-06-15 13:51:26,110 - INFO - run_production_client:884 -  Session started successfully. Beginning data collection...
+2025-06-15 13:51:26,110 - INFO - listen_for_messages:344 - PRODUCTION MODE: Tracking BTC-PERP-INTX order book with trade aggregation...
+2025-06-15 13:51:26,110 - INFO - listen_for_messages:345 -    Robust error handling enabled. Will continue running indefinitely.
+2025-06-15 13:51:34,139 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:36,112 - WARNING - run_production_client:893 -  Session #1 ended after 12.5s
+2025-06-15 13:51:36,113 - INFO - run_production_client:894 -  Total uptime: 0.0 hours across 1 sessions
+2025-06-15 13:51:36,114 - INFO - run_production_client:898 -  Graceful shutdown requested
+2025-06-15 13:51:36,115 - INFO - run_production_client:930 -  FINAL STATISTICS:
+2025-06-15 13:51:36,115 - INFO - run_production_client:931 -    Total runtime: 0.0 hours
+2025-06-15 13:51:36,116 - INFO - run_production_client:932 -    Active uptime: 0.0 hours (100.0%)
+2025-06-15 13:51:36,116 - INFO - run_production_client:933 -    Sessions: 1
+2025-06-15 13:51:36,117 - INFO - run_production_client:934 -    Average session duration: 0.2 minutes
+2025-06-15 13:51:36,117 - INFO - run_production_client:935 -  Production client shutdown complete
+2025-06-15 13:51:36,118 - WARNING - bulletproof_runner:37 - Main client function exited - this should not happen!
+2025-06-15 13:51:36,118 - INFO - bulletproof_runner:53 -  Bulletproof restart in 15 seconds...
+2025-06-15 13:51:37,270 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:38,352 - INFO - signal_handler:236 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:00:25,111 - INFO - <module>:956 - Dependencies verified
+2025-06-15 14:00:25,111 - INFO - <module>:963 - PRODUCTION COINBASE WEBSOCKET CLIENT
+2025-06-15 14:00:25,111 - INFO - <module>:964 - ==================================================
+2025-06-15 14:00:25,111 - INFO - <module>:965 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 14:00:25,111 - INFO - <module>:966 - Platform: win32
+2025-06-15 14:00:25,111 - INFO - <module>:967 - PID: 8936
+2025-06-15 14:00:25,111 - INFO - <module>:968 - ==================================================
+2025-06-15 14:00:25,112 - INFO - bulletproof_runner:30 - Bulletproof restart #1
+2025-06-15 14:00:25,112 - INFO - run_production_client:840 - PRODUCTION MODE - Order Book + Trade Tracker Starting...
+2025-06-15 14:00:25,112 - INFO - run_production_client:841 -    - Infinite retry logic enabled
+2025-06-15 14:00:25,113 - INFO - run_production_client:842 -    - Comprehensive error handling active
+2025-06-15 14:00:25,113 - INFO - run_production_client:843 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 14:00:25,113 - INFO - run_production_client:848 - Testing product connectivity...
+2025-06-15 14:00:25,290 - INFO - get_rest_api_data_safe:820 - Product BTC-PERP-INTX exists and is accessible
+2025-06-15 14:00:25,291 - INFO - run_production_client:859 - Using confirmed product: BTC-PERP-INTX
+2025-06-15 14:00:25,292 - INFO - run_production_client:870 - Starting session #1
+2025-06-15 14:00:25,292 - WARNING - setup_signal_handlers:245 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:00:25,293 - INFO - connect_with_retry:255 - Connection attempt 1/50 to wss://advanced-trade-ws.coinbase.com
+2025-06-15 14:00:25,798 - INFO - connect_with_retry:281 - WebSocket connected successfully
+2025-06-15 14:00:25,799 - INFO - subscribe_to_market_data:315 - Subscribing to level2 for BTC-PERP-INTX
+2025-06-15 14:00:26,803 - INFO - subscribe_to_market_data:315 - Subscribing to market_trades for BTC-PERP-INTX
+2025-06-15 14:00:27,811 - INFO - subscribe_to_market_data:334 - Successfully subscribed to 2/2 channels
+2025-06-15 14:00:27,812 - INFO - run_production_client:888 - Session started successfully. Beginning data collection...
+2025-06-15 14:00:27,813 - INFO - listen_for_messages:346 - PRODUCTION MODE: Tracking BTC-PERP-INTX order book with trade aggregation...
+2025-06-15 14:00:27,814 - INFO - listen_for_messages:347 -    Robust error handling enabled. Will continue running indefinitely.
+2025-06-15 14:00:27,831 - INFO - _handle_l2_update_safe:465 - Order book initialized - Spread: $0.10
+2025-06-15 14:00:27,832 - INFO - _handle_subscription_confirmation_safe:446 - Confirmed subscription - level2: ['BTC-PERP-INTX']
+2025-06-15 14:00:27,868 - INFO - _handle_subscription_confirmation_safe:446 - Confirmed subscription - level2: ['BTC-PERP-INTX']
+2025-06-15 14:00:27,868 - INFO - _handle_subscription_confirmation_safe:446 - Confirmed subscription - market_trades: ['BTC-PERP-INTX']
+2025-06-15 15:08:33,242 - WARNING - listen_for_messages:397 - WebSocket connection closed: sent 1011 (internal error) keepalive ping timeout; no close frame received
+2025-06-15 15:08:33,244 - WARNING - run_production_client:897 - Session #1 ended after 4088.0s
+2025-06-15 15:08:33,244 - INFO - run_production_client:898 - Total uptime: 1.1 hours across 1 sessions
+2025-06-15 15:08:33,244 - INFO - run_production_client:934 - FINAL STATISTICS:
+2025-06-15 15:08:33,245 - INFO - run_production_client:935 -    Total runtime: 1.1 hours
+2025-06-15 15:08:33,245 - INFO - run_production_client:936 -    Active uptime: 1.1 hours (100.0%)
+2025-06-15 15:08:33,245 - INFO - run_production_client:937 -    Sessions: 1
+2025-06-15 15:08:33,246 - INFO - run_production_client:938 -    Average session duration: 68.1 minutes
+2025-06-15 15:08:33,246 - INFO - run_production_client:939 - Production client shutdown complete
+2025-06-15 15:08:33,246 - WARNING - bulletproof_runner:37 - Main client function exited - this should not happen!
+2025-06-15 15:08:33,247 - INFO - bulletproof_runner:53 - Bulletproof restart in 5 seconds...
+2025-06-15 15:08:38,260 - INFO - bulletproof_runner:30 - Bulletproof restart #2
+2025-06-15 15:08:38,260 - INFO - run_production_client:840 - PRODUCTION MODE - Order Book + Trade Tracker Starting...
+2025-06-15 15:08:38,261 - INFO - run_production_client:841 -    - Infinite retry logic enabled
+2025-06-15 15:08:38,261 - INFO - run_production_client:842 -    - Comprehensive error handling active
+2025-06-15 15:08:38,262 - INFO - run_production_client:843 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 15:08:38,262 - INFO - run_production_client:848 - Testing product connectivity...
+2025-06-15 15:08:38,681 - INFO - get_rest_api_data_safe:820 - Product BTC-PERP-INTX exists and is accessible
+2025-06-15 15:08:38,682 - INFO - run_production_client:859 - Using confirmed product: BTC-PERP-INTX
+2025-06-15 15:08:38,682 - INFO - run_production_client:870 - Starting session #1
+2025-06-15 15:08:38,683 - WARNING - setup_signal_handlers:245 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 15:08:38,683 - INFO - connect_with_retry:255 - Connection attempt 1/50 to wss://advanced-trade-ws.coinbase.com
+2025-06-15 15:08:39,217 - INFO - connect_with_retry:281 - WebSocket connected successfully
+2025-06-15 15:08:39,218 - INFO - subscribe_to_market_data:315 - Subscribing to level2 for BTC-PERP-INTX
+2025-06-15 15:08:40,224 - INFO - subscribe_to_market_data:315 - Subscribing to market_trades for BTC-PERP-INTX
+2025-06-15 15:08:41,228 - INFO - subscribe_to_market_data:334 - Successfully subscribed to 2/2 channels
+2025-06-15 15:08:41,229 - INFO - run_production_client:888 - Session started successfully. Beginning data collection...
+2025-06-15 15:08:41,230 - INFO - listen_for_messages:346 - PRODUCTION MODE: Tracking BTC-PERP-INTX order book with trade aggregation...
+2025-06-15 15:08:41,230 - INFO - listen_for_messages:347 -    Robust error handling enabled. Will continue running indefinitely.
+2025-06-15 15:08:41,248 - INFO - _handle_l2_update_safe:465 - Order book initialized - Spread: $0.10
+2025-06-15 15:08:41,250 - INFO - _handle_subscription_confirmation_safe:446 - Confirmed subscription - level2: ['BTC-PERP-INTX']
+2025-06-15 15:08:41,268 - INFO - _handle_subscription_confirmation_safe:446 - Confirmed subscription - level2: ['BTC-PERP-INTX']
+2025-06-15 15:08:41,269 - INFO - _handle_subscription_confirmation_safe:446 - Confirmed subscription - market_trades: ['BTC-PERP-INTX']

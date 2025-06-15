@@ -1,0 +1,262 @@
+2025-06-15 13:22:23,896 - INFO - <module>:928 -  PRODUCTION BTC FUNDING DATA COLLECTOR
+2025-06-15 13:22:23,896 - INFO - <module>:929 - ==================================================
+2025-06-15 13:22:23,896 - INFO - <module>:930 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 13:22:23,896 - INFO - <module>:931 - Platform: win32
+2025-06-15 13:22:23,896 - INFO - <module>:932 - PID: 11536
+2025-06-15 13:22:23,896 - INFO - <module>:933 - ==================================================
+2025-06-15 13:22:31,628 - INFO - run_production_collector:710 -  Starting session #1
+2025-06-15 13:22:31,639 - INFO - _create_session:99 -  HTTP session created with retry strategy
+2025-06-15 13:22:31,639 - INFO - run_continuous_monitoring:618 -  Starting continuous monitoring every 1 seconds
+2025-06-15 13:22:31,640 - INFO - run_continuous_monitoring:619 -    - Production error handling enabled
+2025-06-15 13:22:31,640 - INFO - run_continuous_monitoring:620 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 13:22:31,640 - INFO - run_continuous_monitoring:621 - Press Ctrl+C to stop
+2025-06-15 13:22:31,640 - INFO - find_working_product:605 -  Testing product variants...
+2025-06-15 13:22:31,946 - INFO - validate_product_id:322 -  Product BTC-PERP-INTX validated successfully
+2025-06-15 13:22:31,946 - INFO - run_continuous_monitoring:625 -  Using product: BTC-PERP-INTX
+2025-06-15 13:24:24,338 - INFO - signal_handler:295 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:24:24,552 - INFO - run_continuous_monitoring:676 -  Continuous monitoring exited
+2025-06-15 13:24:24,553 - INFO - shutdown:680 -  Starting graceful shutdown...
+2025-06-15 13:24:24,558 - INFO - close:159 -  HTTP session closed
+2025-06-15 13:24:24,558 - INFO - shutdown:696 -  Graceful shutdown complete
+2025-06-15 13:24:24,559 - INFO - run_production_collector:746 -  FINAL STATISTICS:
+2025-06-15 13:24:24,559 - INFO - run_production_collector:747 -    Total runtime: 0.0 hours
+2025-06-15 13:24:24,560 - INFO - run_production_collector:748 -    Sessions: 1
+2025-06-15 13:24:24,560 - INFO - run_production_collector:749 -  Production funding collector shutdown complete
+2025-06-15 13:24:24,561 - INFO - <module>:982 -  Application terminated
+2025-06-15 13:24:26,227 - INFO - <module>:931 -  PRODUCTION BTC FUNDING DATA COLLECTOR
+2025-06-15 13:24:26,227 - INFO - <module>:932 - ==================================================
+2025-06-15 13:24:26,227 - INFO - <module>:933 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 13:24:26,227 - INFO - <module>:934 - Platform: win32
+2025-06-15 13:24:26,227 - INFO - <module>:935 - PID: 17892
+2025-06-15 13:24:26,227 - INFO - <module>:936 - ==================================================
+2025-06-15 13:24:29,571 - INFO - run_production_collector:713 -  Starting session #1
+2025-06-15 13:24:29,572 - INFO - _create_session:99 -  HTTP session created with retry strategy
+2025-06-15 13:24:29,572 - INFO - run_continuous_monitoring:621 -  Starting continuous monitoring every 1 seconds
+2025-06-15 13:24:29,573 - INFO - run_continuous_monitoring:622 -    - Production error handling enabled
+2025-06-15 13:24:29,574 - INFO - run_continuous_monitoring:623 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 13:24:29,574 - INFO - run_continuous_monitoring:624 - Press Ctrl+C to stop
+2025-06-15 13:24:29,574 - INFO - find_working_product:608 -  Testing product variants...
+2025-06-15 13:24:30,002 - INFO - validate_product_id:322 -  Product BTC-PERP-INTX validated successfully
+2025-06-15 13:24:30,003 - INFO - run_continuous_monitoring:628 -  Using product: BTC-PERP-INTX
+2025-06-15 13:24:51,901 - INFO - signal_handler:295 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:24:52,488 - INFO - run_continuous_monitoring:679 -  Continuous monitoring exited
+2025-06-15 13:24:52,490 - INFO - shutdown:683 -  Starting graceful shutdown...
+2025-06-15 13:24:52,496 - INFO - close:159 -  HTTP session closed
+2025-06-15 13:24:52,497 - INFO - shutdown:699 -  Graceful shutdown complete
+2025-06-15 13:24:52,497 - INFO - run_production_collector:749 -  FINAL STATISTICS:
+2025-06-15 13:24:52,498 - INFO - run_production_collector:750 -    Total runtime: 0.0 hours
+2025-06-15 13:24:52,498 - INFO - run_production_collector:751 -    Sessions: 1
+2025-06-15 13:24:52,499 - INFO - run_production_collector:752 -  Production funding collector shutdown complete
+2025-06-15 13:24:52,499 - INFO - <module>:985 -  Application terminated
+2025-06-15 13:24:56,066 - INFO - <module>:931 -  PRODUCTION BTC FUNDING DATA COLLECTOR
+2025-06-15 13:24:56,066 - INFO - <module>:932 - ==================================================
+2025-06-15 13:24:56,066 - INFO - <module>:933 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 13:24:56,066 - INFO - <module>:934 - Platform: win32
+2025-06-15 13:24:56,066 - INFO - <module>:935 - PID: 10480
+2025-06-15 13:24:56,066 - INFO - <module>:936 - ==================================================
+2025-06-15 13:25:01,374 - INFO - run_production_collector:713 -  Starting session #1
+2025-06-15 13:25:01,374 - INFO - _create_session:99 -  HTTP session created with retry strategy
+2025-06-15 13:25:01,375 - INFO - run_continuous_monitoring:621 -  Starting continuous monitoring every 1 seconds
+2025-06-15 13:25:01,375 - INFO - run_continuous_monitoring:622 -    - Production error handling enabled
+2025-06-15 13:25:01,376 - INFO - run_continuous_monitoring:623 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 13:25:01,376 - INFO - run_continuous_monitoring:624 - Press Ctrl+C to stop
+2025-06-15 13:25:01,376 - INFO - find_working_product:608 -  Testing product variants...
+2025-06-15 13:25:02,068 - INFO - validate_product_id:322 -  Product BTC-PERP-INTX validated successfully
+2025-06-15 13:25:02,068 - INFO - run_continuous_monitoring:628 -  Using product: BTC-PERP-INTX
+2025-06-15 13:25:08,468 - INFO - signal_handler:295 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:25:09,390 - INFO - run_continuous_monitoring:679 -  Continuous monitoring exited
+2025-06-15 13:25:09,391 - INFO - shutdown:683 -  Starting graceful shutdown...
+2025-06-15 13:25:09,395 - INFO - close:159 -  HTTP session closed
+2025-06-15 13:25:09,395 - INFO - shutdown:699 -  Graceful shutdown complete
+2025-06-15 13:25:09,396 - INFO - run_production_collector:749 -  FINAL STATISTICS:
+2025-06-15 13:25:09,396 - INFO - run_production_collector:750 -    Total runtime: 0.0 hours
+2025-06-15 13:25:09,396 - INFO - run_production_collector:751 -    Sessions: 1
+2025-06-15 13:25:09,397 - INFO - run_production_collector:752 -  Production funding collector shutdown complete
+2025-06-15 13:25:09,397 - INFO - <module>:985 -  Application terminated
+2025-06-15 13:25:11,296 - INFO - <module>:931 -  PRODUCTION BTC FUNDING DATA COLLECTOR
+2025-06-15 13:25:11,296 - INFO - <module>:932 - ==================================================
+2025-06-15 13:25:11,296 - INFO - <module>:933 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 13:25:11,296 - INFO - <module>:934 - Platform: win32
+2025-06-15 13:25:11,296 - INFO - <module>:935 - PID: 29428
+2025-06-15 13:25:11,296 - INFO - <module>:936 - ==================================================
+2025-06-15 13:25:23,873 - INFO - run_production_collector:713 -  Starting session #1
+2025-06-15 13:25:23,873 - INFO - _create_session:99 -  HTTP session created with retry strategy
+2025-06-15 13:25:23,873 - INFO - run_continuous_monitoring:621 -  Starting continuous monitoring every 1 seconds
+2025-06-15 13:25:23,874 - INFO - run_continuous_monitoring:622 -    - Production error handling enabled
+2025-06-15 13:25:23,874 - INFO - run_continuous_monitoring:623 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 13:25:23,874 - INFO - run_continuous_monitoring:624 - Press Ctrl+C to stop
+2025-06-15 13:25:23,874 - INFO - find_working_product:608 -  Testing product variants...
+2025-06-15 13:25:24,149 - INFO - validate_product_id:322 -  Product BTC-PERP-INTX validated successfully
+2025-06-15 13:25:24,150 - INFO - run_continuous_monitoring:628 -  Using product: BTC-PERP-INTX
+2025-06-15 13:51:13,725 - INFO - signal_handler:295 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 13:51:14,537 - INFO - run_continuous_monitoring:679 -  Continuous monitoring exited
+2025-06-15 13:51:14,537 - INFO - shutdown:683 -  Starting graceful shutdown...
+2025-06-15 13:51:14,540 - INFO - close:159 -  HTTP session closed
+2025-06-15 13:51:14,540 - INFO - shutdown:699 -  Graceful shutdown complete
+2025-06-15 13:51:14,541 - INFO - run_production_collector:749 -  FINAL STATISTICS:
+2025-06-15 13:51:14,541 - INFO - run_production_collector:750 -    Total runtime: 0.4 hours
+2025-06-15 13:51:14,541 - INFO - run_production_collector:751 -    Sessions: 1
+2025-06-15 13:51:14,541 - INFO - run_production_collector:752 -  Production funding collector shutdown complete
+2025-06-15 13:51:14,541 - INFO - <module>:985 -  Application terminated
+2025-06-15 14:07:28,002 - INFO - <module>:980 - PRODUCTION BTC FUNDING DATA COLLECTOR
+2025-06-15 14:07:28,003 - INFO - <module>:981 - ==================================================
+2025-06-15 14:07:28,003 - INFO - <module>:982 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 14:07:28,003 - INFO - <module>:983 - Platform: win32
+2025-06-15 14:07:28,003 - INFO - <module>:984 - PID: 24588
+2025-06-15 14:07:28,003 - INFO - <module>:985 - ==================================================
+2025-06-15 14:07:31,410 - INFO - bulletproof_runner:24 - Bulletproof restart #1
+2025-06-15 14:07:31,410 - INFO - run_production_collector:751 - Starting session #1
+2025-06-15 14:07:31,411 - INFO - _create_session:131 - HTTP session created with retry strategy
+2025-06-15 14:07:31,411 - WARNING - setup_signal_handlers:338 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:07:31,411 - INFO - run_continuous_monitoring:657 - Starting continuous monitoring every 1 seconds
+2025-06-15 14:07:31,411 - INFO - run_continuous_monitoring:658 -    - Production error handling enabled
+2025-06-15 14:07:31,411 - INFO - run_continuous_monitoring:659 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 14:07:31,411 - INFO - run_continuous_monitoring:660 - Press Ctrl+C to stop
+2025-06-15 14:07:31,411 - INFO - find_working_product:644 - Testing product variants...
+2025-06-15 14:07:31,708 - INFO - validate_product_id:358 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:07:31,709 - INFO - run_continuous_monitoring:664 - Using product: BTC-PERP-INTX
+2025-06-15 14:07:59,193 - INFO - signal_handler:328 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:07:59,488 - INFO - run_continuous_monitoring:717 - Continuous monitoring exited
+2025-06-15 14:07:59,489 - INFO - run_production_collector:761 - Session #1 ended gracefully after 28.1s
+2025-06-15 14:07:59,489 - INFO - run_production_collector:765 - Graceful shutdown requested
+2025-06-15 14:07:59,489 - INFO - shutdown:721 - Starting graceful shutdown...
+2025-06-15 14:07:59,492 - INFO - close:191 - HTTP session closed
+2025-06-15 14:07:59,493 - INFO - shutdown:737 - Graceful shutdown complete
+2025-06-15 14:07:59,493 - INFO - run_production_collector:797 - FINAL STATISTICS:
+2025-06-15 14:07:59,493 - INFO - run_production_collector:798 -    Total runtime: 0.0 hours
+2025-06-15 14:07:59,494 - INFO - run_production_collector:799 -    Active uptime: 0.0 hours (100.0%)
+2025-06-15 14:07:59,494 - INFO - run_production_collector:800 -    Sessions: 1
+2025-06-15 14:07:59,494 - INFO - run_production_collector:801 - Production funding collector shutdown complete
+2025-06-15 14:07:59,494 - WARNING - bulletproof_runner:31 - Main collector function exited - this should not happen!
+2025-06-15 14:07:59,495 - INFO - bulletproof_runner:47 - Bulletproof restart in 5 seconds...
+2025-06-15 14:08:03,923 - INFO - signal_handler:328 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:08:04,495 - INFO - bulletproof_runner:24 - Bulletproof restart #2
+2025-06-15 14:08:04,495 - INFO - run_production_collector:751 - Starting session #1
+2025-06-15 14:08:04,496 - INFO - _create_session:131 - HTTP session created with retry strategy
+2025-06-15 14:08:04,497 - WARNING - setup_signal_handlers:338 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:08:04,497 - INFO - run_continuous_monitoring:657 - Starting continuous monitoring every 1 seconds
+2025-06-15 14:08:04,497 - INFO - run_continuous_monitoring:658 -    - Production error handling enabled
+2025-06-15 14:08:04,498 - INFO - run_continuous_monitoring:659 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 14:08:04,498 - INFO - run_continuous_monitoring:660 - Press Ctrl+C to stop
+2025-06-15 14:08:04,499 - INFO - find_working_product:644 - Testing product variants...
+2025-06-15 14:08:04,883 - INFO - validate_product_id:358 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:08:04,884 - INFO - run_continuous_monitoring:664 - Using product: BTC-PERP-INTX
+2025-06-15 14:08:09,091 - INFO - signal_handler:328 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:08:09,368 - INFO - run_continuous_monitoring:717 - Continuous monitoring exited
+2025-06-15 14:08:09,368 - INFO - run_production_collector:761 - Session #1 ended gracefully after 4.9s
+2025-06-15 14:08:09,368 - INFO - run_production_collector:765 - Graceful shutdown requested
+2025-06-15 14:08:09,369 - INFO - shutdown:721 - Starting graceful shutdown...
+2025-06-15 14:08:09,370 - INFO - close:191 - HTTP session closed
+2025-06-15 14:08:09,370 - INFO - shutdown:737 - Graceful shutdown complete
+2025-06-15 14:08:09,370 - INFO - run_production_collector:797 - FINAL STATISTICS:
+2025-06-15 14:08:09,370 - INFO - run_production_collector:798 -    Total runtime: 0.0 hours
+2025-06-15 14:08:09,370 - INFO - run_production_collector:799 -    Active uptime: 0.0 hours (100.0%)
+2025-06-15 14:08:09,370 - INFO - run_production_collector:800 -    Sessions: 1
+2025-06-15 14:08:09,370 - INFO - run_production_collector:801 - Production funding collector shutdown complete
+2025-06-15 14:08:09,370 - WARNING - bulletproof_runner:31 - Main collector function exited - this should not happen!
+2025-06-15 14:08:09,370 - INFO - bulletproof_runner:47 - Bulletproof restart in 10 seconds...
+2025-06-15 14:08:16,019 - INFO - signal_handler:328 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:08:17,941 - INFO - signal_handler:328 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:08:18,610 - INFO - signal_handler:328 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:08:19,371 - INFO - bulletproof_runner:24 - Bulletproof restart #3
+2025-06-15 14:08:19,371 - INFO - run_production_collector:751 - Starting session #1
+2025-06-15 14:08:19,371 - INFO - _create_session:131 - HTTP session created with retry strategy
+2025-06-15 14:08:19,372 - WARNING - setup_signal_handlers:338 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:08:19,372 - INFO - run_continuous_monitoring:657 - Starting continuous monitoring every 1 seconds
+2025-06-15 14:08:19,372 - INFO - run_continuous_monitoring:658 -    - Production error handling enabled
+2025-06-15 14:08:19,372 - INFO - run_continuous_monitoring:659 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 14:08:19,372 - INFO - run_continuous_monitoring:660 - Press Ctrl+C to stop
+2025-06-15 14:08:19,372 - INFO - find_working_product:644 - Testing product variants...
+2025-06-15 14:08:19,797 - INFO - validate_product_id:358 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:08:19,797 - INFO - run_continuous_monitoring:664 - Using product: BTC-PERP-INTX
+2025-06-15 14:08:26,163 - INFO - signal_handler:328 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:08:27,085 - INFO - run_continuous_monitoring:717 - Continuous monitoring exited
+2025-06-15 14:08:27,085 - INFO - run_production_collector:761 - Session #1 ended gracefully after 7.7s
+2025-06-15 14:08:27,086 - INFO - run_production_collector:765 - Graceful shutdown requested
+2025-06-15 14:08:27,086 - INFO - shutdown:721 - Starting graceful shutdown...
+2025-06-15 14:08:27,088 - INFO - close:191 - HTTP session closed
+2025-06-15 14:08:27,089 - INFO - shutdown:737 - Graceful shutdown complete
+2025-06-15 14:08:27,089 - INFO - run_production_collector:797 - FINAL STATISTICS:
+2025-06-15 14:08:27,089 - INFO - run_production_collector:798 -    Total runtime: 0.0 hours
+2025-06-15 14:08:27,089 - INFO - run_production_collector:799 -    Active uptime: 0.0 hours (100.0%)
+2025-06-15 14:08:27,089 - INFO - run_production_collector:800 -    Sessions: 1
+2025-06-15 14:08:27,090 - INFO - run_production_collector:801 - Production funding collector shutdown complete
+2025-06-15 14:08:27,090 - WARNING - bulletproof_runner:31 - Main collector function exited - this should not happen!
+2025-06-15 14:08:27,090 - INFO - bulletproof_runner:47 - Bulletproof restart in 15 seconds...
+2025-06-15 14:08:42,091 - INFO - bulletproof_runner:24 - Bulletproof restart #4
+2025-06-15 14:08:42,091 - INFO - run_production_collector:751 - Starting session #1
+2025-06-15 14:08:42,091 - INFO - _create_session:131 - HTTP session created with retry strategy
+2025-06-15 14:08:42,092 - WARNING - setup_signal_handlers:338 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:08:42,092 - INFO - run_continuous_monitoring:657 - Starting continuous monitoring every 1 seconds
+2025-06-15 14:08:42,092 - INFO - run_continuous_monitoring:658 -    - Production error handling enabled
+2025-06-15 14:08:42,092 - INFO - run_continuous_monitoring:659 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 14:08:42,092 - INFO - run_continuous_monitoring:660 - Press Ctrl+C to stop
+2025-06-15 14:08:42,092 - INFO - find_working_product:644 - Testing product variants...
+2025-06-15 14:08:42,532 - INFO - validate_product_id:358 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:08:42,532 - INFO - run_continuous_monitoring:664 - Using product: BTC-PERP-INTX
+2025-06-15 14:09:26,125 - INFO - <module>:981 - PRODUCTION BTC FUNDING DATA COLLECTOR
+2025-06-15 14:09:26,126 - INFO - <module>:982 - ==================================================
+2025-06-15 14:09:26,126 - INFO - <module>:983 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 14:09:26,126 - INFO - <module>:984 - Platform: win32
+2025-06-15 14:09:26,126 - INFO - <module>:985 - PID: 25204
+2025-06-15 14:09:26,126 - INFO - <module>:986 - ==================================================
+2025-06-15 14:09:26,126 - INFO - <module>:1035 - Application terminated
+2025-06-15 14:09:36,777 - INFO - <module>:981 - PRODUCTION BTC FUNDING DATA COLLECTOR
+2025-06-15 14:09:36,777 - INFO - <module>:982 - ==================================================
+2025-06-15 14:09:36,777 - INFO - <module>:983 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 14:09:36,777 - INFO - <module>:984 - Platform: win32
+2025-06-15 14:09:36,778 - INFO - <module>:985 - PID: 26600
+2025-06-15 14:09:36,778 - INFO - <module>:986 - ==================================================
+2025-06-15 14:09:38,779 - INFO - bulletproof_runner:24 - Bulletproof restart #1
+2025-06-15 14:09:38,779 - INFO - run_production_collector:751 - Starting session #1
+2025-06-15 14:09:38,779 - INFO - _create_session:131 - HTTP session created with retry strategy
+2025-06-15 14:09:38,780 - WARNING - setup_signal_handlers:338 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:09:38,780 - INFO - run_continuous_monitoring:657 - Starting continuous monitoring every 1 seconds
+2025-06-15 14:09:38,780 - INFO - run_continuous_monitoring:658 -    - Production error handling enabled
+2025-06-15 14:09:38,781 - INFO - run_continuous_monitoring:659 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 14:09:38,781 - INFO - run_continuous_monitoring:660 - Press Ctrl+C to stop
+2025-06-15 14:09:38,781 - INFO - find_working_product:644 - Testing product variants...
+2025-06-15 14:09:39,307 - INFO - validate_product_id:358 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:09:39,308 - INFO - run_continuous_monitoring:664 - Using product: BTC-PERP-INTX
+2025-06-15 14:09:41,254 - INFO - signal_handler:328 - Received signal 2. Initiating graceful shutdown...
+2025-06-15 14:09:41,415 - INFO - run_continuous_monitoring:717 - Continuous monitoring exited
+2025-06-15 14:09:41,416 - INFO - run_production_collector:761 - Session #1 ended gracefully after 2.6s
+2025-06-15 14:09:41,416 - INFO - run_production_collector:765 - Graceful shutdown requested
+2025-06-15 14:09:41,416 - INFO - shutdown:721 - Starting graceful shutdown...
+2025-06-15 14:09:41,417 - INFO - close:191 - HTTP session closed
+2025-06-15 14:09:41,417 - INFO - shutdown:737 - Graceful shutdown complete
+2025-06-15 14:09:41,418 - INFO - run_production_collector:797 - FINAL STATISTICS:
+2025-06-15 14:09:41,418 - INFO - run_production_collector:798 -    Total runtime: 0.0 hours
+2025-06-15 14:09:41,418 - INFO - run_production_collector:799 -    Active uptime: 0.0 hours (99.9%)
+2025-06-15 14:09:41,418 - INFO - run_production_collector:800 -    Sessions: 1
+2025-06-15 14:09:41,419 - INFO - run_production_collector:801 - Production funding collector shutdown complete
+2025-06-15 14:09:41,419 - WARNING - bulletproof_runner:31 - Main collector function exited - this should not happen!
+2025-06-15 14:09:41,419 - INFO - bulletproof_runner:47 - Bulletproof restart in 5 seconds...
+2025-06-15 14:09:46,419 - INFO - bulletproof_runner:24 - Bulletproof restart #2
+2025-06-15 14:09:46,420 - INFO - run_production_collector:751 - Starting session #1
+2025-06-15 14:09:46,420 - INFO - _create_session:131 - HTTP session created with retry strategy
+2025-06-15 14:09:46,420 - WARNING - setup_signal_handlers:338 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:09:46,420 - INFO - run_continuous_monitoring:657 - Starting continuous monitoring every 1 seconds
+2025-06-15 14:09:46,421 - INFO - run_continuous_monitoring:658 -    - Production error handling enabled
+2025-06-15 14:09:46,421 - INFO - run_continuous_monitoring:659 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 14:09:46,421 - INFO - run_continuous_monitoring:660 - Press Ctrl+C to stop
+2025-06-15 14:09:46,421 - INFO - find_working_product:644 - Testing product variants...
+2025-06-15 14:09:46,814 - INFO - validate_product_id:358 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:09:46,815 - INFO - run_continuous_monitoring:664 - Using product: BTC-PERP-INTX
+2025-06-15 14:10:01,007 - INFO - <module>:981 - PRODUCTION BTC FUNDING DATA COLLECTOR
+2025-06-15 14:10:01,007 - INFO - <module>:982 - ==================================================
+2025-06-15 14:10:01,007 - INFO - <module>:983 - Python: 3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+2025-06-15 14:10:01,007 - INFO - <module>:984 - Platform: win32
+2025-06-15 14:10:01,008 - INFO - <module>:985 - PID: 1144
+2025-06-15 14:10:01,008 - INFO - <module>:986 - ==================================================
+2025-06-15 14:10:03,009 - INFO - bulletproof_runner:24 - Bulletproof restart #1
+2025-06-15 14:10:03,010 - INFO - run_production_collector:751 - Starting session #1
+2025-06-15 14:10:03,010 - INFO - _create_session:131 - HTTP session created with retry strategy
+2025-06-15 14:10:03,010 - WARNING - setup_signal_handlers:338 - Could not setup signal handlers: module 'signal' has no attribute 'SIGHUP'
+2025-06-15 14:10:03,010 - INFO - run_continuous_monitoring:657 - Starting continuous monitoring every 1 seconds
+2025-06-15 14:10:03,011 - INFO - run_continuous_monitoring:658 -    - Production error handling enabled
+2025-06-15 14:10:03,011 - INFO - run_continuous_monitoring:659 -    - Graceful shutdown on SIGINT/SIGTERM
+2025-06-15 14:10:03,011 - INFO - run_continuous_monitoring:660 - Press Ctrl+C to stop
+2025-06-15 14:10:03,011 - INFO - find_working_product:644 - Testing product variants...
+2025-06-15 14:10:04,031 - INFO - validate_product_id:358 - Product BTC-PERP-INTX validated successfully
+2025-06-15 14:10:04,031 - INFO - run_continuous_monitoring:664 - Using product: BTC-PERP-INTX

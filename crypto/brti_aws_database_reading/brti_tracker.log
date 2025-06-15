@@ -1,0 +1,10 @@
+2025-06-14 18:38:25 [INFO] ⏳ Watchdog waiting for first price update...
+2025-06-14 18:38:25 [INFO] 🌀 Starting BRTI polling loop...
+2025-06-14 18:38:25 [INFO] 📡 Attempting PostgreSQL connection...
+2025-06-14 18:38:29 [WARNING] ⏳ PostgreSQL connection failed. Retrying in 5s... Error: connection to server at "localhost" (::1), port 5432 failed: Connection refused (0x0000274D/10061)
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused (0x0000274D/10061)
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-06-14 18:38:36 [INFO] Note: NumExpr detected 20 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2025-06-14 18:38:36 [INFO] NumExpr defaulting to 8 threads.

@@ -2,7 +2,7 @@
 param(
     [string]$PemPath = "C:\Users\chris\OneDrive\Desktop\Programming\ssh keys\AWS Key.pem",
     [string]$Ec2User = "ubuntu",
-    [string]$Ec2Host = "ec2-52-70-139-102.compute-1.amazonaws.com"
+    [string]$Ec2Host = "ec2-54-84-245-133.compute-1.amazonaws.com"
 )
 
 # Set proper permissions on PEM key (read-only for user)

@@ -24,8 +24,8 @@ sudo sed -i 's/^host\s\+all\s\+all\s\+::1\/128\s\+.*/host    all             all
 # Restart PostgreSQL to apply changes
 sudo systemctl restart postgresql
 
-# === Create database, table, and grant permissions ===
-echo "📦 Creating database and user..."
+# === Create database, drop old table, create new one ===
+echo "📦 Creating database and refreshing brti_prices table..."
 sudo -u postgres psql <<EOF
 DO \$\$
 BEGIN
@@ -38,11 +38,13 @@ END
 
 \c brti
 
--- Create table if not exists
-CREATE TABLE IF NOT EXISTS brti_prices (
+-- Drop old table if exists
+DROP TABLE IF EXISTS brti_prices;
+
+-- Create updated table without simple_average
+CREATE TABLE brti_prices (
     id SERIAL PRIMARY KEY,
     price NUMERIC(10, 2),
-    simple_average NUMERIC(10, 2),
     timestamp TIMESTAMPTZ
 );
 
@@ -51,4 +53,4 @@ GRANT ALL PRIVILEGES ON TABLE brti_prices TO ubuntu;
 GRANT USAGE, SELECT ON SEQUENCE brti_prices_id_seq TO ubuntu;
 EOF
 
-echo "✅ PostgreSQL setup complete. Database: brti | User: ubuntu | Local access: trust (no password)"
+echo "✅ PostgreSQL setup complete. Database: brti | Table: brti_prices (without simple_average)"
