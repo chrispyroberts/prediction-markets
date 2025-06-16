@@ -27,18 +27,18 @@ def load_key_from_file(file_path):
 
 USE_DEMO_API = False  # Set to False for production API 
 
-if USE_DEMO_API:
-    # Load demo API key from .env
-    private_key_path = ".private_key_demo"
-    public_key_path = ".public_key_demo"
-    base_url = 'https://demo-api.kalshi.co'
-else:
-    # Load production API key from .env
-    private_key_path = ".private_key"
-    public_key_path = ".public_key"
-    base_url = 'https://api.elections.kalshi.com'
+# Load demo API key from .env
+demo_private_key_path = ".private_key_demo"
+demo_public_key_path = ".public_key_demo"
+demo_url = 'https://demo-api.kalshi.co'
+
+# Load production API key from .env
+private_key_path = ".private_key"
+public_key_path = ".public_key"
+url = 'https://api.elections.kalshi.com'
 
 
+# Comment out to make sure that we are using demo keys
 # Load private key from .env
 private_key_str = load_key_from_file(private_key_path.strip())
 private_key_obj = serialization.load_pem_private_key(
@@ -46,8 +46,17 @@ private_key_obj = serialization.load_pem_private_key(
     password=None,
     backend=default_backend()
 )
+
+demo_private_key_str = load_key_from_file(demo_private_key_path.strip())
+demo_private_key_obj = serialization.load_pem_private_key(
+    demo_private_key_str.encode('utf-8'),
+    password=None,
+    backend=default_backend()
+)
+
 # Kalshi Public API Key ID
 KALSHI_API_KEY_ID = load_key_from_file(public_key_path).strip()
+DEMO_KALSHI_API_KEY_ID = load_key_from_file(demo_public_key_path).strip()
 
 def get_current_event(series="KXBTC"):
     # default series is KXBTC
@@ -187,7 +196,7 @@ def sign_pss_text(private_key: rsa.RSAPrivateKey, text: str) -> str:
     except InvalidSignature as e:
         raise ValueError("RSA sign PSS failed") from e
     
-def kalshi_signed_request(method, path, private_key, key_id, base_url=base_url, params=None, body=None):
+def kalshi_signed_request(method, path, private_key, key_id, base_url, params=None, body=None):
     # 1️⃣ Get timestamp
     current_time_milliseconds = int(time.time() * 1000)
     timestamp_str = str(current_time_milliseconds)
@@ -220,7 +229,7 @@ def kalshi_signed_request(method, path, private_key, key_id, base_url=base_url, 
 
     return response
 
-def submit_order(ticker, action, quantity, price):
+def submit_order(ticker, action, quantity, price, demo=True):
     """
     Fully self-contained helper:
     - Loads private key from .env
@@ -244,24 +253,40 @@ def submit_order(ticker, action, quantity, price):
         "yes_price": price
     }
 
+    if demo:
+        private_key = demo_private_key_obj
+        key_id = DEMO_KALSHI_API_KEY_ID
+        base_url = demo_url
+    else: 
+        pass
+        # private_key = private_key_obj
+        # key_id = KALSHI_API_KEY_ID
+        # base_url = url
+
     # Submit signed request
     response = kalshi_signed_request(
         method="POST",
         path=path,
-        private_key=private_key_obj,
-        key_id=KALSHI_API_KEY_ID,
+        private_key=private_key,
+        key_id=key_id,
+        base_url=base_url,
         body=body
     )
 
     # debug_print response
     debug_print("UTILS: Status Code:", response.status_code)
     try:
-        return response.json()
+        if response.status_code == 201:
+            debug_print("UTILS: ✅ Order placed successfully")
+            return response.json()
+        else:
+            return None
+        
     except Exception:
         debug_print("UTILS: ❌ Response parsing error:", response.text)
         return None
     
-def check_order_fill_status(order_id):
+def check_order_fill_status(order_id, demo=True):
     """
     Checks if a given order_id has any fills.
     
@@ -274,16 +299,26 @@ def check_order_fill_status(order_id):
         "limit": 1  # Only need to check for existence
     }
 
+    if demo:
+        private_key = demo_private_key_obj
+        key_id = DEMO_KALSHI_API_KEY_ID
+        base_url = demo_url
+    else:
+        pass
+        # private_key = private_key_obj
+        # key_id = KALSHI_API_KEY_ID
+        # base_url = url
+
     # Submit signed request
     response = kalshi_signed_request(
         method="GET",
         path=path,
-        private_key=private_key_obj,
-        key_id=KALSHI_API_KEY_ID,
+        private_key=private_key,
+        key_id=key_id,
+        base_url=base_url,
         body=None,  # GET requests do not send a body
         params=params
     )
-
 
     if response.status_code == 200:
         debug_print("UTILS: Status Code: 200")
@@ -297,7 +332,7 @@ def check_order_fill_status(order_id):
         debug_print("UTILS: ❌ Response:", response.text)
         return None, None
 
-def cancel_order(order_id):
+def cancel_order(order_id, demo=True):
     """
     Fully self-contained helper:
     - Cancels an existing order by order_id
@@ -308,21 +343,260 @@ def cancel_order(order_id):
     # Endpoint for cancelling an order
     path = f"/trade-api/v2/portfolio/orders/{order_id}"
 
+
+    if demo:
+        private_key = demo_private_key_obj
+        key_id = DEMO_KALSHI_API_KEY_ID
+        base_url = demo_url
+    else:
+        pass 
+        # private_key_obj = private_key_obj
+        # key_id = KALSHI_API_KEY_ID
+        # base_url = url
+
     # Submit signed request (DELETE)
     response = kalshi_signed_request(
         method="DELETE",
         path=path,
-        private_key=private_key_obj,
-        key_id=KALSHI_API_KEY_ID,
+        private_key=private_key,
+        key_id=key_id,
+        base_url=base_url,
         body=None
     )
 
     # debug_print response
     debug_print("UTILS: Status Code:", response.status_code)
     try:
-        return response.json()
+        if response.status_code == 200:
+            debug_print("UTILS: ✅ Order cancelled successfully")
+            return response.json()
+        else:
+            return None
     except Exception:
         debug_print("UTILS: ❌ Response parsing error:", response.text)
+        return None
+
+def test_authentication(demo=True):
+    """Test if authentication is working by making a simple authenticated request"""
+    try:
+        if demo:
+            private_key = demo_private_key_obj
+            key_id = DEMO_KALSHI_API_KEY_ID
+            base_url_test = demo_url
+        else:
+            private_key = private_key_obj
+            key_id = KALSHI_API_KEY_ID
+            base_url_test = url
+        
+        # Try to get account balance (simple authenticated endpoint)
+        path = "/trade-api/v2/portfolio/balance"
+        
+        response = kalshi_signed_request(
+            method="GET",
+            path=path,
+            private_key=private_key,
+            key_id=key_id,
+            base_url=base_url_test
+        )
+        
+        print(f"Auth test status code: {response.status_code}")
+        print(f"Auth test response: {response.text}")
+        
+        if response.status_code == 200:
+            print("✅ Authentication working!")
+            return True
+        else:
+            print("❌ Authentication failed!")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Authentication test error: {e}")
+        return False
+
+def cancel_all_orders(demo=True):
+    """
+    Cancel all active orders for the account.
+    
+    :param demo: Whether to use demo API or production
+    :return: Dictionary with cancellation results
+    """
+    try:
+        # Step 1: Get all active orders
+        debug_print("🔍 Fetching all active orders...")
+        
+        path = "/trade-api/v2/portfolio/orders"
+        params = {
+            "status": "resting"  # Only get open/active orders
+        }
+
+        if demo:
+            private_key = demo_private_key_obj
+            key_id = DEMO_KALSHI_API_KEY_ID
+            base_url = demo_url
+        else:
+            pass
+            # private_key = private_key_obj
+            # key_id = KALSHI_API_KEY_ID
+            # base_url = url
+
+        # Get all orders
+        response = kalshi_signed_request(
+            method="GET",
+            path=path,
+            private_key=private_key,
+            key_id=key_id,
+            base_url=base_url,
+            params=params
+        )
+
+        if response.status_code != 200:
+            debug_print(f"❌ Failed to fetch orders. Status: {response.status_code}")
+            debug_print(f"❌ Response: {response.text}")
+            return {
+                'success': False, 
+                'error': f'Failed to fetch orders: {response.status_code}',
+                'cancelled_count': 0,
+                'failed_count': 0
+            }
+
+        orders_data = response.json()
+        orders = orders_data.get('orders', [])
+        
+        if not orders:
+            debug_print("✅ No active orders found to cancel")
+            return {
+                'success': True,
+                'message': 'No active orders to cancel',
+                'cancelled_count': 0,
+                'failed_count': 0
+            }
+
+        debug_print(f"📋 Found {len(orders)} active orders to cancel")
+
+        # Step 2: Cancel each order
+        cancelled_count = 0
+        failed_count = 0
+        cancellation_results = []
+
+        for order in orders:
+            order_id = order.get('order_id')
+            ticker = order.get('ticker', 'Unknown')
+            side = order.get('side', 'Unknown')
+            price = order.get('yes_price') or order.get('no_price', 'Unknown')
+            
+            if not order_id:
+                debug_print(f"❌ Order missing order_id: {order}")
+                failed_count += 1
+                continue
+
+            debug_print(f"❌ Cancelling order {order_id}: {ticker} {side} @ {price}")
+            
+            try:
+                cancel_response = cancel_order(order_id, demo=demo)
+                
+                if cancel_response:
+                    debug_print(f"✅ Successfully cancelled order {order_id}")
+                    cancelled_count += 1
+                    cancellation_results.append({
+                        'order_id': order_id,
+                        'ticker': ticker,
+                        'side': side,
+                        'price': price,
+                        'status': 'cancelled'
+                    })
+                else:
+                    debug_print(f"❌ Failed to cancel order {order_id}")
+                    failed_count += 1
+                    cancellation_results.append({
+                        'order_id': order_id,
+                        'ticker': ticker,
+                        'side': side,
+                        'price': price,
+                        'status': 'failed'
+                    })
+                    
+            except Exception as e:
+                debug_print(f"❌ Exception cancelling order {order_id}: {e}")
+                failed_count += 1
+                cancellation_results.append({
+                    'order_id': order_id,
+                    'ticker': ticker,
+                    'side': side,
+                    'price': price,
+                    'status': 'error',
+                    'error': str(e)
+                })
+
+        # Step 3: Return summary
+        result = {
+            'success': True,
+            'total_orders': len(orders),
+            'cancelled_count': cancelled_count,
+            'failed_count': failed_count,
+            'cancellation_results': cancellation_results
+        }
+
+        debug_print(f"📊 Cancellation Summary:")
+        debug_print(f"   Total orders: {len(orders)}")
+        debug_print(f"   Successfully cancelled: {cancelled_count}")
+        debug_print(f"   Failed to cancel: {failed_count}")
+
+        return result
+
+    except Exception as e:
+        debug_print(f"❌ Error in cancel_all_orders: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'cancelled_count': 0,
+            'failed_count': 0
+        }
+
+def get_all_orders(demo=True, status="resting"):
+    """
+    Get all orders for the account.
+    
+    :param demo: Whether to use demo API or production
+    :param status: Order status filter ('open', 'filled', 'canceled', etc.)
+    :return: List of orders or None if error
+    """
+    try:
+        debug_print(f"🔍 Fetching all {status} orders...")
+        
+        path = '/trade-api/v2/portfolio/orders?status={status}'
+        params = {}
+        
+        if demo:
+            private_key = demo_private_key_obj
+            key_id = DEMO_KALSHI_API_KEY_ID
+            base_url = demo_url
+        else:
+            pass
+            # private_key = private_key_obj
+            # key_id = KALSHI_API_KEY_ID
+            # base_url = url
+
+        response = kalshi_signed_request(
+            method="GET",
+            path=path,
+            private_key=private_key,
+            key_id=key_id,
+            url=base_url,
+            params=params
+        )
+
+        if response.status_code == 200:
+            orders_data = response.json()
+            orders = orders_data.get('orders', [])
+            debug_print(f"✅ Retrieved {len(orders)} {status} orders")
+            return orders
+        else:
+            debug_print(f"❌ Failed to fetch orders. Status: {response.status_code}")
+            debug_print(f"❌ Response: {response.text}")
+            return None
+
+    except Exception as e:
+        debug_print(f"❌ Error fetching orders: {e}")
         return None
 
 def start_kalshi_ws_client(market_ticker):
