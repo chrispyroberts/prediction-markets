@@ -1,6 +1,8 @@
 import asyncio
 import time
 from typing import Dict, Optional, Tuple, Any
+
+
 from utils import submit_order, cancel_order, check_order_fill_status, debug_print
 
 class OrderManager:
@@ -89,7 +91,7 @@ class OrderManager:
         calculated_bid = self.safe_get(self.mm.our_quotes, ticker, 'bid')
         calculated_ask = self.safe_get(self.mm.our_quotes, ticker, 'ask')
         
-        debug_print(f"🔄 Quote update for {ticker}: New bid={calculated_bid}, New ask={calculated_ask}")
+        # debug_print(f"🔄 Quote update for {ticker}: New bid={calculated_bid}, New ask={calculated_ask}")
         
         # Handle bid and ask independently
         await self._handle_bid_logic(ticker, calculated_bid)
@@ -104,33 +106,35 @@ class OrderManager:
         current_bid_order_id = self.safe_get(self.active_orders, ticker, 'bid_order_id')
         current_live_bid = self.safe_get(self.live_quotes, ticker, 'bid')
         
-        debug_print(f"📊 BID Logic for {ticker}:")
-        debug_print(f"  New bid: {new_bid}")
-        debug_print(f"  Current live bid: {current_live_bid}")
-        debug_print(f"  Current bid order ID: {current_bid_order_id}")
+        # debug_print(f"📊 BID Logic for {ticker}:")
+        # debug_print(f"  New bid: {new_bid}")
+        # debug_print(f"  Current live bid: {current_live_bid}")
+        # debug_print(f"  Current bid order ID: {current_bid_order_id}")
         
         # Case 1: New bid is None - we should cancel any existing bid
         if new_bid is None:
             if current_bid_order_id is not None:
-                debug_print(f"🚫 Case 1: New bid is None, cancelling existing bid order {current_bid_order_id}")
+                # debug_print(f"🚫 Case 1: New bid is None, cancelling existing bid order {current_bid_order_id}")
                 await self._cancel_order_and_wait(ticker, 'bid')
             else:
-                debug_print(f"✅ Case 1: New bid is None, no existing bid to cancel")
+                pass
+                # debug_print(f"✅ Case 1: New bid is None, no existing bid to cancel")
             return
         
         # Case 2: New bid exists
         if current_bid_order_id is None:
             # No existing order, place new one
-            debug_print(f"📤 Case 2a: No existing bid, placing new bid at {new_bid}")
+            # debug_print(f"📤 Case 2a: No existing bid, placing new bid at {new_bid}")
             await self._place_bid_order(ticker, new_bid)
         else:
             # Existing order exists, check if price is different
             if current_live_bid != new_bid:
-                debug_print(f"🔄 Case 2b: Price changed from {current_live_bid} to {new_bid}, cancelling and replacing")
+                # debug_print(f"🔄 Case 2b: Price changed from {current_live_bid} to {new_bid}, cancelling and replacing")
                 await self._cancel_order_and_wait(ticker, 'bid')
                 await self._place_bid_order(ticker, new_bid)
             else:
-                debug_print(f"✅ Case 2c: Price unchanged at {new_bid}, keeping existing order")
+                pass
+                # debug_print(f"✅ Case 2c: Price unchanged at {new_bid}, keeping existing order")
     
     async def _handle_ask_logic(self, ticker: str, new_ask: Optional[int]):
         """
@@ -141,33 +145,35 @@ class OrderManager:
         current_ask_order_id = self.safe_get(self.active_orders, ticker, 'ask_order_id')
         current_live_ask = self.safe_get(self.live_quotes, ticker, 'ask')
         
-        debug_print(f"📊 ASK Logic for {ticker}:")
-        debug_print(f"  New ask: {new_ask}")
-        debug_print(f"  Current live ask: {current_live_ask}")
-        debug_print(f"  Current ask order ID: {current_ask_order_id}")
+        # debug_print(f"📊 ASK Logic for {ticker}:")
+        # debug_print(f"  New ask: {new_ask}")
+        # debug_print(f"  Current live ask: {current_live_ask}")
+        # debug_print(f"  Current ask order ID: {current_ask_order_id}")
         
         # Case 1: New ask is None - we should cancel any existing ask
         if new_ask is None:
             if current_ask_order_id is not None:
-                debug_print(f"🚫 Case 1: New ask is None, cancelling existing ask order {current_ask_order_id}")
+                # debug_print(f"🚫 Case 1: New ask is None, cancelling existing ask order {current_ask_order_id}")
                 await self._cancel_order_and_wait(ticker, 'ask')
             else:
-                debug_print(f"✅ Case 1: New ask is None, no existing ask to cancel")
+                pass
+                # debug_print(f"✅ Case 1: New ask is None, no existing ask to cancel")
             return
         
         # Case 2: New ask exists
         if current_ask_order_id is None:
             # No existing order, place new one
-            debug_print(f"📤 Case 2a: No existing ask, placing new ask at {new_ask}")
+            # debug_print(f"📤 Case 2a: No existing ask, placing new ask at {new_ask}")
             await self._place_ask_order(ticker, new_ask)
         else:
             # Existing order exists, check if price is different
             if current_live_ask != new_ask:
-                debug_print(f"🔄 Case 2b: Price changed from {current_live_ask} to {new_ask}, cancelling and replacing")
+                # debug_print(f"🔄 Case 2b: Price changed from {current_live_ask} to {new_ask}, cancelling and replacing")
                 await self._cancel_order_and_wait(ticker, 'ask')
                 await self._place_ask_order(ticker, new_ask)
             else:
-                debug_print(f"✅ Case 2c: Price unchanged at {new_ask}, keeping existing order")
+                pass
+                # debug_print(f"✅ Case 2c: Price unchanged at {new_ask}, keeping existing order")
     
     async def _cancel_order_and_wait(self, ticker: str, side: str):
         """
@@ -189,7 +195,7 @@ class OrderManager:
             return False
             
         try:
-            debug_print(f"❌ Cancelling {side.upper()} order: {order_id} for {ticker}")
+            # debug_print(f"❌ Cancelling {side.upper()} order: {order_id} for {ticker}")
             self.pending_cancellations.add(order_id)
             
             response = cancel_order(order_id, demo=self.demo)
@@ -198,7 +204,8 @@ class OrderManager:
             await asyncio.sleep(self.cancel_wait_time)
             
             if response:
-                debug_print(f"✅ Successfully cancelled {side.upper()} order: {order_id}")
+                pass
+                # debug_print(f"✅ Successfully cancelled {side.upper()} order: {order_id}")
             else:
                 debug_print(f"⚠️ Cancel response for {order_id}: {response}")
                 
@@ -223,7 +230,7 @@ class OrderManager:
         self._ensure_ticker_initialized(ticker)
         
         try:
-            debug_print(f"📤 Placing BID order: {ticker} @ {price} for {self.mm.mm_size}")
+            # debug_print(f"📤 Placing BID order: {ticker} @ {price} for {self.mm.mm_size}")
             
             response = submit_order(
                 ticker=ticker,
@@ -248,7 +255,7 @@ class OrderManager:
                         'timestamp': time.time()
                     }
                     
-                    debug_print(f"✅ BID order placed successfully: {order_id} at {price}")
+                    # debug_print(f"✅ BID order placed successfully: {order_id} at {price}")
                 else:
                     debug_print(f"❌ No order_id in response: {response}")
             else:
@@ -266,7 +273,7 @@ class OrderManager:
         self._ensure_ticker_initialized(ticker)
         
         try:
-            debug_print(f"📤 Placing ASK order: {ticker} @ {price} for {self.mm.mm_size}")
+            # debug_print(f"📤 Placing ASK order: {ticker} @ {price} for {self.mm.mm_size}")
             
             response = submit_order(
                 ticker=ticker,
@@ -291,7 +298,7 @@ class OrderManager:
                         'timestamp': time.time()
                     }
                     
-                    debug_print(f"✅ ASK order placed successfully: {order_id} at {price}")
+                    # debug_print(f"✅ ASK order placed successfully: {order_id} at {price}")
                 else:
                     debug_print(f"❌ No order_id in response: {response}")
             else:

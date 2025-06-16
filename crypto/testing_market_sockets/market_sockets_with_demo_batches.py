@@ -12,7 +12,7 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 
 from utils import sign_pss_text, private_key_obj, KALSHI_API_KEY_ID, get_current_event, get_markets_from_event, test_authentication, cancel_all_orders
-from order_handling import OrderManager
+from batch_order_handling import BatchOrderManager
 
 mm = None  # Global market maker instance
 shutdown_event = asyncio.Event()  # Global shutdown event
@@ -72,6 +72,8 @@ if hasattr(signal, 'SIGHUP'):  # Unix only
 class MarketMaker:
     def __init__(self, tickers, demo=True):
         self.tickers = tickers
+        self.demo = demo
+
         self.orderbooks = {t: {'yes': {}, 'no': {}} for t in tickers}
         self.our_quotes = {t: {'bid': None, 'ask': None} for t in tickers}
         self.positions = {t: 0 for t in tickers}
@@ -84,18 +86,17 @@ class MarketMaker:
         self.total_trades = 0
 
         # mm config
-        self.mm_threshold = 750
-        self.mm_min_spread = 10      
-        self.mm_size = 100   
-        self.search = True # Enable searching for viable quotes rather than just top market maker quotes
+        self.mm_threshold = 10    
+        self.mm_min_spread = 4      
+        self.mm_size = 10   
         
         # Initialize order manager
-        self.order_manager = OrderManager(self, demo=demo)
+        self.order_manager = BatchOrderManager(self, demo=demo)
     
-    async def get_top_quote(self, ticker):
-        """
-        Legacy quote calculation - undercuts top market maker only.
-        """
+    async def update_quote(self, ticker):  # ← MADE ASYNC
+        # TODO: Definitely a better way to do this by checking the DELTA of the orderbook, rather than 2 for loops. 
+        # TODO: The speedup gain of implementing such a method is not worth the time right now, but it is a good idea for the future
+    
         # find market makers in the orderbook
         mm_bid = 0 
         for price, qty in sorted(self.orderbooks[ticker]['yes'].items(), reverse=True):
@@ -109,125 +110,33 @@ class MarketMaker:
                 mm_ask = price
                 break
 
+        # debug_print("Updating quotes for ticker:", ticker)
+        # debug_print("Orderbook YES side:", self.orderbooks[ticker]['yes'])
+        # debug_print("Orderbook NO side:", self.orderbooks[ticker]['no'])
+        # debug_print("Market Maker Bid:", mm_bid, "Market Maker Ask:", mm_ask)
+        
         # If we have a valid market maker bid and ask, update our quotes
         if mm_bid > 0 and mm_ask < 100:
             spread = abs(mm_ask - mm_bid)
             if spread >= self.mm_min_spread:
                 self.our_quotes[ticker]['bid'] = mm_bid + 1
                 self.our_quotes[ticker]['ask'] = mm_ask - 1
-                # debug_print(f"💰 [LEGACY] Updated quotes for {ticker}: Bid {mm_bid + 1}, Ask {mm_ask - 1}")
+                # debug_print(f"💰 Updated quotes for {ticker}: Bid {mm_bid + 1}, Ask {mm_ask - 1}")
             else:
+                # debug_print(f"❌ Spread too narrow for {ticker}: {spread} < {self.mm_min_spread}")
+                # set our_quotes for this ticker to None
                 self.our_quotes[ticker]['bid'] = None
                 self.our_quotes[ticker]['ask'] = None
-                # debug_print(f"❌ [LEGACY] Spread too narrow for {ticker}: {spread} < {self.mm_min_spread}")
         else:
+            # debug_print(f"❌ No valid market maker quotes for {ticker}.")
+            # set our_quotes for this ticker to None
             self.our_quotes[ticker]['bid'] = None
             self.our_quotes[ticker]['ask'] = None
-            # debug_print(f"❌ [LEGACY] No valid market maker quotes for {ticker}")
         
-        # Trigger order management after updating quotes
+        # NEW: Trigger order management after updating quotes
         await self.order_manager.handle_quote_update(ticker)
-
-    def search_viable_quotes_efficient(self, ticker):
-        """
-        Algorithmically efficient O(n log n) search for viable quotes using two-pointer technique.
-        """
         
-        yes_book = self.orderbooks[ticker]['yes']
-        no_book = self.orderbooks[ticker]['no']
-        
-        # Extract viable bid levels - O(n)
-        viable_bids = []
-        for price, qty in yes_book.items():
-            if qty >= self.mm_threshold:
-                viable_bid_price = price + 1
-                if 1 <= viable_bid_price <= 99:
-                    viable_bids.append(viable_bid_price)
-        
-        # Extract viable ask levels - O(m)  
-        viable_asks = []
-        for price, qty in no_book.items():
-            if qty >= self.mm_threshold:
-                viable_ask_price = price - 1
-                if 1 <= viable_ask_price <= 99:
-                    viable_asks.append(viable_ask_price)
-        
-        if not viable_bids or not viable_asks:
-            return None, None
-        
-        # Sort once - O(n log n) + O(m log m)
-        viable_bids.sort(reverse=True)  # Highest first
-        viable_asks.sort()              # Lowest first
-        
-        # Two-pointer approach to find best spread - O(n + m)
-        best_bid, best_ask = None, None
-        best_spread = float('inf')
-        
-        bid_idx = 0
-        ask_idx = 0
-        
-        while bid_idx < len(viable_bids) and ask_idx < len(viable_asks):
-            bid_price = viable_bids[bid_idx]
-            ask_price = viable_asks[ask_idx]
-            
-            if ask_price <= bid_price:
-                # Ask too low, move to next higher ask
-                ask_idx += 1
-                continue
-                
-            spread = ask_price - bid_price
-            
-            if spread >= self.mm_min_spread:
-                # Valid spread found
-                if spread < best_spread:
-                    best_spread = spread
-                    best_bid, best_ask = bid_price, ask_price
-                
-                # Try to tighten further by moving to next lower bid
-                bid_idx += 1
-            else:
-                # Spread too narrow, try next higher ask
-                ask_idx += 1
-        
-        if best_bid is not None:
-            # debug_print(f"✅ {ticker} - Efficient search: Bid {best_bid}, Ask {best_ask}, Spread {best_spread}")
-            return best_bid, best_ask
-        else:
-            # debug_print(f"❌ {ticker} - No viable spread found (min: {self.mm_min_spread})")
-            return None, None
-
-    async def get_viable_quote(self, ticker):
-        """
-        Updated quote function using efficient two-pointer search algorithm.
-        """
-        
-        # Use the efficient search algorithm
-        viable_bid, viable_ask = self.search_viable_quotes_efficient(ticker)
-        
-        if viable_bid is not None and viable_ask is not None:
-            # We found a viable market - set our quotes
-            self.our_quotes[ticker]['bid'] = viable_bid
-            self.our_quotes[ticker]['ask'] = viable_ask
-            # debug_print(f"💰 {ticker} - Setting quotes: Bid {viable_bid}, Ask {viable_ask}")
-        else:
-            # No viable market found - don't quote
-            self.our_quotes[ticker]['bid'] = None
-            self.our_quotes[ticker]['ask'] = None
-            # debug_print(f"🚫 {ticker} - No quotes set (no viable market)")
-        
-        # Trigger order management after updating quotes
-        await self.order_manager.handle_quote_update(ticker)
-
-    async def update_quote(self, ticker):
-        """
-        Main quote update method - toggles between legacy and efficient search modes.
-        """
-        if self.search:
-            await self.get_viable_quote(ticker)
-        else:
-            await self.get_top_quote(ticker)
-
-    async def update_orderbook_delta(self, ticker, msg): 
+    async def update_orderbook_delta(self, ticker, msg):  # ← MADE ASYNC
         side = msg["side"]
         price = msg["price"]
 
@@ -246,7 +155,7 @@ class MarketMaker:
         # trigger quote updating (now async)
         await self.update_quote(ticker)
 
-    async def update_orderbook_snapshot(self, ticker, msg): 
+    async def update_orderbook_snapshot(self, ticker, msg):  # ← MADE ASYNC
         self.orderbooks[ticker]['yes'] = {p: q for p, q in msg.get('yes', [])}
         self.orderbooks[ticker]['no'] = {100-p: q for p, q in msg.get('no', [])}
 
@@ -481,7 +390,7 @@ async def kalshi_ws_stream(market_tickers):
     }
 
     try:
-        async with websockets.connect(ws_url, extra_headers=headers, ping_interval=20, ping_timeout=10) as ws:
+        async with websockets.connect(ws_url, extra_headers=headers, ping_interval=10, ping_timeout=5) as ws:
             print("✅ WebSocket connected!")
 
             # Subscribe to orderbook_delta
@@ -637,7 +546,8 @@ async def start_ws_client_with_monitoring(market_tickers):
     await asyncio.gather(
         start_ws_client(market_tickers),
         periodic_status_report(),
-        mm.order_manager.check_fills_periodically()  # NEW: Add fill checking
+        mm.order_manager.batch_process_loop(),        # NEW: batch processing loop
+        mm.order_manager.check_fills_periodically()   # Keep fill checking
     )
 
 if __name__ == "__main__":

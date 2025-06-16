@@ -5,7 +5,8 @@ import uuid
 import json
 import threading
 import websocket
-import ssl
+import ssl  
+from typing import List, Dict
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -249,7 +250,7 @@ def submit_order(ticker, action, quantity, price, demo=True):
         "side": "yes",             # always "yes"
         "type": "limit",
         "count": quantity,
-        "client_order_id": f"order_{int(time.time())}",
+        "client_order_id": f"order_{int(time.time())}_{uuid.uuid4().hex[:8]}",
         "yes_price": price
     }
 
@@ -274,13 +275,13 @@ def submit_order(ticker, action, quantity, price, demo=True):
     )
 
     # debug_print response
-    debug_print("UTILS: Status Code:", response.status_code)
+    # debug_print("UTILS: Status Code:", response.status_code)
     try:
-        if response.status_code == 201:
-            debug_print("UTILS: ✅ Order placed successfully")
-            return response.json()
-        else:
+        if response.status_code != 201:
+            debug_print("UTILS: ❌ Failed to place order. Status code:", response.status_code)
             return None
+        else:
+            return response.json()
         
     except Exception:
         debug_print("UTILS: ❌ Response parsing error:", response.text)
@@ -321,7 +322,7 @@ def check_order_fill_status(order_id, demo=True):
     )
 
     if response.status_code == 200:
-        debug_print("UTILS: Status Code: 200")
+        # debug_print("UTILS: Status Code: 200")
         fills_data = response.json().get("fills", [])
         if fills_data:
             return True, response.json()
@@ -365,13 +366,15 @@ def cancel_order(order_id, demo=True):
     )
 
     # debug_print response
-    debug_print("UTILS: Status Code:", response.status_code)
+    # debug_print("UTILS: Status Code:", response.status_code)
+
     try:
-        if response.status_code == 200:
-            debug_print("UTILS: ✅ Order cancelled successfully")
-            return response.json()
-        else:
+        if response.status_code != 200:
+            debug_print("UTILS: ERROR CANCELLING ORDER:", response.text)
             return None
+        else:
+            return response.json()
+    
     except Exception:
         debug_print("UTILS: ❌ Response parsing error:", response.text)
         return None
@@ -598,6 +601,204 @@ def get_all_orders(demo=True, status="resting"):
     except Exception as e:
         debug_print(f"❌ Error fetching orders: {e}")
         return None
+
+def batch_create_orders(order_specs: List[Dict], demo=True) -> Dict:
+    """
+    Create multiple orders using Kalshi's batch API.
+    
+    :param order_specs: List of order specifications, each containing:
+                       - ticker: str
+                       - action: 'buy' or 'sell'
+                       - price: int (in cents)
+                       - quantity: int
+                       - side: 'bid' or 'ask' (used for tracking)
+    :param demo: Whether to use demo API
+    :return: Response dictionary with success status and order data
+    """
+    if not order_specs:
+        return {'success': True, 'orders': []}
+    
+    try:
+        # Prepare the batch order request
+        path = "/trade-api/v2/portfolio/orders/batched"
+        
+        # Convert our order specs to Kalshi's format
+        orders_payload = []
+        for spec in order_specs:
+            order_payload = {
+                "ticker": spec['ticker'],
+                "action": spec['action'],  # 'buy' or 'sell'
+                "side": "yes",  # Always trade YES side
+                "type": "limit",
+                "count": spec['quantity'],
+                "client_order_id": f"batch_order_{int(time.time())}_{uuid.uuid4().hex[:8]}",
+                "yes_price": spec['price'],
+                "post_only": False  # Allow crossing the spread
+            }
+            orders_payload.append(order_payload)
+        
+        body = {"orders": orders_payload}
+        
+        # Choose API endpoint based on demo flag
+        if demo:
+            private_key = demo_private_key_obj
+            key_id = DEMO_KALSHI_API_KEY_ID
+            base_url = demo_url
+        else:
+            pass
+            # private_key = private_key_obj
+            # key_id = KALSHI_API_KEY_ID
+            # base_url = url
+        
+        # Submit signed request
+        response = kalshi_signed_request(
+            method="POST",
+            path=path,
+            private_key=private_key,
+            key_id=key_id,
+            base_url=base_url,
+            body=body
+        )
+        
+        debug_print(f"UTILS: Batch create status code: {response.status_code}")
+        
+        if response.status_code == 201:
+            response_data = response.json()
+            orders = response_data.get('orders', [])
+            
+            debug_print(f"UTILS: ✅ Batch created {len(orders)} orders successfully")
+            
+            return {
+                'success': True,
+                'orders': orders,
+                'total_created': len(orders)
+            }
+        else:
+            debug_print(f"UTILS: ❌ Batch create failed: {response.status_code}")
+            debug_print(f"UTILS: Response: {response.text}")
+            return {
+                'success': False,
+                'error': f"HTTP {response.status_code}: {response.text}",
+                'orders': []
+            }
+            
+    except Exception as e:
+        debug_print(f"UTILS: ❌ Exception in batch_create_orders: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'orders': []
+        }
+
+def batch_cancel_orders(order_ids: List[str], demo=True) -> Dict:
+    """
+    Cancel multiple orders using Kalshi's batch API.
+    
+    :param order_ids: List of order IDs to cancel
+    :param demo: Whether to use demo API
+    :return: Response dictionary with success status
+    """
+    if not order_ids:
+        return {'success': True, 'cancelled_count': 0}
+    
+    try:
+        # Prepare the batch cancel request
+        path = "/trade-api/v2/portfolio/orders/batched"
+        body = {"ids": order_ids}
+        
+        # Choose API endpoint based on demo flag
+        if demo:
+            private_key = demo_private_key_obj
+            key_id = DEMO_KALSHI_API_KEY_ID
+            base_url = demo_url
+        else:
+            private_key = private_key_obj
+            key_id = KALSHI_API_KEY_ID
+            base_url = url
+        
+        # Submit signed DELETE request
+        response = kalshi_signed_request(
+            method="DELETE",
+            path=path,
+            private_key=private_key,
+            key_id=key_id,
+            base_url=base_url,
+            body=body
+        )
+        
+        debug_print(f"UTILS: Batch cancel status code: {response.status_code}")
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            
+            debug_print(f"UTILS: ✅ Batch cancelled {len(order_ids)} orders successfully")
+            
+            return {
+                'success': True,
+                'cancelled_count': len(order_ids),
+                'response_data': response_data
+            }
+        else:
+            debug_print(f"UTILS: ❌ Batch cancel failed: {response.status_code}")
+            debug_print(f"UTILS: Response: {response.text}")
+            return {
+                'success': False,
+                'error': f"HTTP {response.status_code}: {response.text}",
+                'cancelled_count': 0
+            }
+            
+    except Exception as e:
+        debug_print(f"UTILS: ❌ Exception in batch_cancel_orders: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'cancelled_count': 0
+        }
+
+def test_batch_apis(demo=True):
+    """
+    Test the batch APIs with a simple order create and cancel.
+    """
+    try:
+        debug_print("🧪 Testing batch APIs...")
+        
+        # Test batch create with a simple order
+        test_order_specs = [{
+            'ticker': 'KXBTC-25JUN1615-B113625',  # Replace with a valid ticker
+            'action': 'buy',
+            'price': 10,  # Low price unlikely to fill
+            'quantity': 1,
+            'side': 'bid'
+        }]
+        
+        # Create order
+        create_response = batch_create_orders(test_order_specs, demo=demo)
+        debug_print(f"Create response: {create_response}")
+        
+        if create_response['success'] and create_response['orders']:
+            order_id = create_response['orders'][0]['order_id']
+            debug_print(f"✅ Created test order: {order_id}")
+            
+            # Wait a moment
+            time.sleep(1)
+            
+            # Cancel order
+            cancel_response = batch_cancel_orders([order_id], demo=demo)
+            debug_print(f"Cancel response: {cancel_response}")
+            
+            if cancel_response['success']:
+                debug_print("✅ Batch APIs working correctly!")
+                return True
+            else:
+                debug_print("❌ Batch cancel failed")
+                return False
+        else:
+            debug_print("❌ Batch create failed")
+            return False
+            
+    except Exception as e:
+        debug_print(f"❌ Error testing batch APIs: {e}")
+        return False
 
 def start_kalshi_ws_client(market_ticker):
     """
