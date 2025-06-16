@@ -433,11 +433,12 @@ def handle_finalized_outcomes(data):
     return finalized_trades, cumulative_total_pnl, expected_edge
 
 def start_sio_client():
-    sio.connect("http://localhost:5050", transports=["websocket"])
+    sio.connect("http://127.0.0.1:5050", transports=["websocket"])
     sio.wait()
 
 if __name__ == "__main__":
     # Start the client in a background thread
+    print("Starting")
     threading.Thread(target=start_sio_client, daemon=True).start()
 
     # Start the Flask-SocketIO server
