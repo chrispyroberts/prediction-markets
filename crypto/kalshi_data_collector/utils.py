@@ -59,8 +59,9 @@ demo_private_key_obj = serialization.load_pem_private_key(
 KALSHI_API_KEY_ID = load_key_from_file(public_key_path).strip()
 DEMO_KALSHI_API_KEY_ID = load_key_from_file(demo_public_key_path).strip()
 
-def get_current_event(series="KXBTC"):
-    # default series is KXBTC
+def get_current_event(series="KXBTCD"):
+    # default series is KXBTC - this is the range contracts
+    # KXBTCD is the price contracts
     url = f"https://api.elections.kalshi.com/trade-api/v2/events?status=open&series_ticker={series}"
     headers = {"accept": "application/json"}
     response = requests.get(url, headers=headers)
@@ -130,56 +131,6 @@ def get_orderbook(ticker):
     
     except Exception as e:
         debug_print("UTILS: ❌ Error fetching orderbook:", e)
-        return None
-
-def place_order(ticker, price, quantity, side="yes"):
-    """
-    Places a limit order on the Kalshi market.
-    
-    :param ticker: Market ticker
-    :param side: 'yes' or 'no' side of the market
-    :param price: Price in cents for the chosen side
-    :param quantity: Number of contracts to buy/sell
-    :return: Order ID if successful, None otherwise
-    """
-    url = "https://api.elections.kalshi.com/trade-api/v2/portfolio/orders"
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {os.getenv('KALSHI_API_KEY')}",
-        "Content-Type": "application/json"
-    }
-
-    # Generate a unique client_order_id
-    client_order_id = f"my_order_{int(time.time())}_{uuid.uuid4().hex[:8]}"
-
-    payload = {
-        "ticker": ticker,
-        "action": "buy",               # 'buy' or 'sell'
-        "side": side,                  # 'yes' or 'no'
-        "type": "limit",               # only 'limit' supported with price
-        "count": quantity,
-        "client_order_id": client_order_id,
-        "time_in_force": "fill_or_kill",  # or leave out for GTC via expiration_ts
-        "post_only": False,
-    }
-
-    # Either yes_price or no_price (in cents)
-    if side == "yes":
-        payload["yes_price"] = price
-    else:
-        payload["no_price"] = price
-
-    # Send the request
-    response = requests.post(url, headers=headers, json=payload, timeout=5)
-
-    if response.status_code == 201:
-        order = response.json().get("order", {})
-        debug_print("UTILS: ✅ Order placed successfully:")
-        debug_print(f"UTILS: Order ID: {order['order_id']}")
-        debug_print(f"UTILS: Status: {order['status']}")
-        return order["order_id"]
-    else:
-        debug_print("UTILS: ❌ Failed to place order:", response.status_code, response.text)
         return None
 
 def sign_pss_text(private_key: rsa.RSAPrivateKey, text: str) -> str:
@@ -266,7 +217,6 @@ def test_authentication(demo=True):
     except Exception as e:
         print(f"❌ Authentication test error: {e}")
         return False
-
 
 def start_kalshi_ws_client(market_ticker):
     """

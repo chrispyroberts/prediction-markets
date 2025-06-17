@@ -33,6 +33,10 @@ class KalshiDataCollector:
         # Track last top-of-book state to detect changes
         self.last_top_of_book = {t: {'bid': None, 'bid_qty': None, 'ask': None, 'ask_qty': None} for t in market_tickers}
         
+        # Activity monitoring
+        self.last_orderbook_update_time = time.time()
+        self.orderbook_timeout = 60  # 1 minute timeout
+        
         # Parquet storage setup
         self.orderbook_batch = []
         self.trade_batch = []
@@ -67,6 +71,7 @@ class KalshiDataCollector:
         self.logger.info(f"Orderbook file: {self.orderbook_parquet}")
         self.logger.info(f"Trade file: {self.trade_parquet}")
         self.logger.info(f"Batch sizes - Orderbook: {self.orderbook_batch_size}, Trade: {self.trade_batch_size}")
+        self.logger.info(f"Orderbook timeout: {self.orderbook_timeout} seconds")
         
     def setup_logging(self):
         """Setup comprehensive logging for the data collector"""
@@ -195,6 +200,11 @@ class KalshiDataCollector:
         
         return changed
         
+    def is_orderbook_stale(self):
+        """Check if orderbook updates have stopped (indicating potential connection issues)"""
+        time_since_last_update = time.time() - self.last_orderbook_update_time
+        return time_since_last_update > self.orderbook_timeout
+        
     def add_orderbook_to_batch(self, ticker, receipt_timestamp_ms, current_tob):
         """Add orderbook data to batch for Parquet writing"""
         timestamp_est = self.timestamp_to_est(receipt_timestamp_ms)
@@ -216,6 +226,8 @@ class KalshiDataCollector:
         ]
         
         self.total_orderbook_updates += 1
+        # Update last orderbook update time
+        self.last_orderbook_update_time = time.time()
         
         with self.orderbook_batch_lock:
             self.orderbook_batch.append(row)
@@ -359,12 +371,14 @@ class KalshiDataCollector:
             'updates_written': self.updates_written,
             'trades_written': self.trades_written,
             'pending_orderbook': len(self.orderbook_batch),
-            'pending_trades': len(self.trade_batch)
+            'pending_trades': len(self.trade_batch),
+            'time_since_last_orderbook_update': time.time() - self.last_orderbook_update_time
         }
 
 # Global instance
 collector = None
 shutdown_event = asyncio.Event()
+stale_data_event = asyncio.Event()
 
 def cleanup_and_exit():
     """Cleanup data collector on exit"""
@@ -512,22 +526,41 @@ async def start_ws_client(market_tickers):
     global collector
     reconnect_count = 0
     
-    while not shutdown_event.is_set():
+    while not shutdown_event.is_set() and not stale_data_event.is_set():
         try:
             await kalshi_ws_stream(market_tickers)
         except Exception as e:
-            if shutdown_event.is_set():
+            if shutdown_event.is_set() or stale_data_event.is_set():
                 break
             reconnect_count += 1
             collector.logger.warning(f"WEBSOCKET_RECONNECT | Attempt: {reconnect_count} | Error: {str(e)}")
             await asyncio.sleep(3)
+
+async def orderbook_activity_monitor():
+    """Monitor orderbook activity and trigger reset if no updates for too long"""
+    global collector, stale_data_event
+    
+    while not shutdown_event.is_set() and not stale_data_event.is_set():
+        await asyncio.sleep(10)  # Check every 10 seconds
+        
+        if collector is None:
+            continue
+            
+        if collector.is_orderbook_stale():
+            time_since_update = time.time() - collector.last_orderbook_update_time
+            collector.logger.warning(f"STALE_ORDERBOOK_DETECTED | Time since last update: {time_since_update:.1f} seconds")
+            print(f"⚠️ No orderbook updates for {time_since_update:.1f} seconds - triggering reset")
+            
+            # Signal stale data to trigger reset
+            stale_data_event.set()
+            break
 
 async def periodic_status_report():
     """Print data collection status every 5 minutes and log every minute"""
     global collector
     minute_counter = 0
     
-    while not shutdown_event.is_set():
+    while not shutdown_event.is_set() and not stale_data_event.is_set():
         await asyncio.sleep(60)  # Check every minute
         if collector is None:
             continue
@@ -554,7 +587,8 @@ async def periodic_status_report():
             print(f"Markets: {len(collector.tickers)} total, {active_markets} active")
             print(f"Updates: {stats['total_orderbook_updates']} collected, {stats['updates_written']} written")
             print(f"Trades: {stats['total_trades']} collected, {stats['trades_written']} written")
-            print(f"Pending: {stats['pending_orderbook']} orderbook, {stats['pending_trades']} trades\n")
+            print(f"Pending: {stats['pending_orderbook']} orderbook, {stats['pending_trades']} trades")
+            print(f"Last orderbook update: {stats['time_since_last_orderbook_update']:.1f}s ago\n")
 
 async def start_data_collection(market_tickers):
     """Start data collection with monitoring"""
@@ -564,17 +598,21 @@ async def start_data_collection(market_tickers):
     await asyncio.gather(
         start_ws_client(market_tickers),
         periodic_status_report(),
+        orderbook_activity_monitor(),  # NEW: Monitor for stale data
         return_exceptions=True
     )
 
 def main():
     """Main function with error recovery"""
-    global collector
+    global collector, stale_data_event
     restart_count = 0
     
     while True:
         try:
             restart_count += 1
+            
+            # Reset stale data event for new iteration
+            stale_data_event.clear()
             
             # Test authentication first
             if not test_authentication(demo=True):
@@ -586,23 +624,34 @@ def main():
             markets = get_markets_from_event(event)
             
             # Initialize data collector
-            collector = KalshiDataCollector(markets, demo=False)
+            collector = KalshiDataCollector(markets, demo=True)
             
             if restart_count == 1:
                 print("🚀 Starting Kalshi Data Collection")
                 print(f"📊 Tracking {len(markets)} election markets")
                 for market in markets:
-                    print(f"  - {market}")
+                    print(f" - {market}")
                 print("💾 Parquet storage with top-of-book change detection")
+                print("⏰ Auto-reset if no orderbook updates for 1+ minute")
                 print("📝 Detailed logging: logs/kalshi_data_collector.log")
                 print("Press Ctrl+C to stop\n")
             else:
-                print(f"🔄 Restarting data collection (attempt #{restart_count})")
+                reason = "stale data detected" if stale_data_event.is_set() else "error recovery"
+                print(f"🔄 Restarting data collection (attempt #{restart_count}) - {reason}")
+                collector.logger.info(f"RESTART_TRIGGERED | Reason: {reason} | Attempt: {restart_count}")
             
             collector.logger.info(f"MAIN_START | Restart count: {restart_count} | Markets: {len(markets)}")
             
             # Start data collection
             asyncio.run(start_data_collection(markets))
+            
+            # If we reach here and stale_data_event is set, it's a planned restart
+            if stale_data_event.is_set():
+                collector.logger.info("PLANNED_RESTART | Restarting due to stale orderbook data")
+                collector.flush_remaining_batches()
+                collector = None
+                time.sleep(2)  # Brief pause before restart
+                continue
             
         except KeyboardInterrupt:
             if collector:
