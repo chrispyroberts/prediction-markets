@@ -2,7 +2,6 @@ import asyncio
 import websockets
 import json
 import time
-import math
 
 import atexit # Shutdown handler
 import signal
@@ -17,6 +16,7 @@ from order_handling import OrderManager
 
 mm = None  # Global market maker instance
 shutdown_event = asyncio.Event()  # Global shutdown event
+restart_event = asyncio.Event()  # Event to trigger market restart
 
 # === Configuration ===
 DEBUG = True
@@ -69,10 +69,199 @@ signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
 if hasattr(signal, 'SIGHUP'):  # Unix only
     signal.signal(signal.SIGHUP, signal_handler)
 
-# Simulated market maker class
+class MarketLifecycleManager:
+    """Manages market lifecycle events and handles market transitions"""
+    
+    def __init__(self, market_maker, demo=True):
+        self.market_maker = market_maker
+        self.demo = demo
+        self.tracked_markets = set(market_maker.tickers)
+        self.closed_markets = set()
+        self.settled_markets = set()
+        self.total_session_pnl = 0.0  # Running total across all market cycles
+        
+    def is_market_tracked(self, ticker):
+        """Check if we're tracking this market"""
+        return ticker in self.tracked_markets
+    
+    async def handle_market_close(self, ticker, close_data):
+        """Handle when a market closes"""
+        if not self.is_market_tracked(ticker):
+            return
+            
+        print(f"\n🔒 MARKET CLOSED: {ticker}")
+        print(f"   Close time: {close_data.get('close_ts', 'Unknown')}")
+        
+        # Add to closed markets set
+        self.closed_markets.add(ticker)
+        
+        # Cancel all orders for this market
+        await self._cancel_market_orders(ticker)
+        
+        # Check if all our markets are closed
+        if self.tracked_markets.issubset(self.closed_markets):
+            print("\n🏁 ALL TRACKED MARKETS CLOSED - Initiating settlement process...")
+            await self._handle_all_markets_closed()
+    
+    async def handle_market_determination(self, ticker, determination_data):
+        """Handle when a market is determined with a result"""
+        if not self.is_market_tracked(ticker):
+            return
+            
+        result = determination_data.get('result', 'Unknown')
+        determination_ts = determination_data.get('determination_ts', time.time())
+        
+        print(f"\n⚖️ MARKET DETERMINED: {ticker}")
+        print(f"   Result: {result}")
+        print(f"   Determination time: {determination_ts}")
+        
+        # Calculate settlement value for our position
+        await self._calculate_settlement(ticker, result)
+    
+    async def handle_market_settlement(self, ticker, settlement_data):
+        """Handle when a market is settled"""
+        if not self.is_market_tracked(ticker):
+            return
+            
+        print(f"\n💰 MARKET SETTLED: {ticker}")
+        print(f"   Settlement time: {settlement_data.get('settled_ts', 'Unknown')}")
+        
+        self.settled_markets.add(ticker)
+        
+        # Check if all markets are settled
+        if self.tracked_markets.issubset(self.settled_markets):
+            print("\n🔄 ALL MARKETS SETTLED - Preparing for next cycle...")
+            await self._prepare_for_next_cycle()
+    
+    async def _cancel_market_orders(self, ticker):
+        """Cancel all orders for a specific market"""
+        try:
+            print(f"❌ Cancelling all orders for {ticker}...")
+            # Use the order manager to cancel orders for this specific market
+            # Note: You may need to modify cancel_all_orders to accept a ticker filter
+            result = cancel_all_orders(demo=self.demo)
+            
+            if result['success']:
+                print(f"✅ Cancelled {result['cancelled_count']} orders")
+            else:
+                print(f"❌ Error cancelling orders: {result.get('error', 'Unknown error')}")
+                
+        except Exception as e:
+            print(f"❌ Error cancelling orders for {ticker}: {e}")
+    
+    async def _handle_all_markets_closed(self):
+        """Handle when all tracked markets are closed"""
+        print("\n" + "="*80)
+        print("🔒 ALL MARKETS CLOSED - SETTLEMENT PHASE")
+        print("="*80)
+        
+        # Cancel ALL remaining orders
+        try:
+            result = cancel_all_orders(demo=self.demo)
+            if result['success']:
+                print(f"✅ Cancelled {result['cancelled_count']} remaining orders")
+        except Exception as e:
+            print(f"❌ Error cancelling remaining orders: {e}")
+        
+        # Print final portfolio status
+        summary = self.market_maker.get_portfolio_summary()
+        print(f"\n📊 FINAL PORTFOLIO STATUS:")
+        print(f"   Total Trades: {summary['total_trades']}")
+        print(f"   Total Realized PnL: ${summary['total_realized_pnl']:.2f}")
+        print(f"   Total Unrealized PnL: ${summary['total_unrealized_pnl']:.2f}")
+        print(f"   Total PnL: ${summary['total_pnl']:.2f}")
+        
+        # Log open positions that will be settled
+        if summary['positions']:
+            print(f"\n📋 POSITIONS TO BE SETTLED:")
+            for ticker, pos_info in summary['positions'].items():
+                print(f"   {ticker}: {pos_info['quantity']} @ {pos_info['avg_price']:.2f}")
+    
+    async def _calculate_settlement(self, ticker, result):
+        """Calculate settlement value for our position in this market"""
+        position = self.market_maker.positions[ticker]
+        avg_price = self.market_maker.avg_prices[ticker]
+        
+        if position == 0:
+            print(f"   No position in {ticker} to settle")
+            return
+        
+        # Determine settlement price based on result
+        if result.lower() == 'yes':
+            settlement_price = 100  # YES wins, worth $1.00 (100 cents)
+        elif result.lower() == 'no':
+            settlement_price = 0    # NO wins, worth $0.00 (0 cents)
+        else:
+            print(f"   ⚠️ Unknown settlement result '{result}' for {ticker} - expected 'yes' or 'no'")
+            return
+        
+        # Calculate settlement PnL
+        if position > 0:
+            # Long position: PnL = (settlement_price - avg_entry) * quantity
+            settlement_pnl = (settlement_price - avg_price) * position
+        else:
+            # Short position: PnL = (avg_entry - settlement_price) * abs(quantity)  
+            settlement_pnl = (avg_price - settlement_price) * abs(position)
+        
+        # Add to realized PnL
+        self.market_maker.realized_pnl[ticker] += settlement_pnl
+        
+        print(f"   💰 Settlement PnL for {ticker}: ${settlement_pnl/100:.2f}")
+        print(f"      Position: {position} @ {avg_price:.2f}")
+        print(f"      Settlement: {settlement_price}")
+        print(f"      Total Realized PnL: ${self.market_maker.realized_pnl[ticker]/100:.2f}")
+    
+    async def _prepare_for_next_cycle(self):
+        """Prepare for the next trading cycle"""
+        print("\n" + "="*80)
+        print("🔄 PREPARING FOR NEXT CYCLE")
+        print("="*80)
+        
+        # Calculate total PnL for this cycle
+        cycle_pnl = sum(self.market_maker.realized_pnl.values()) + sum(self.market_maker.unrealized_pnl.values())
+        self.total_session_pnl += cycle_pnl / 100  # Convert to dollars
+        
+        print(f"📊 CYCLE SUMMARY:")
+        print(f"   Cycle PnL: ${cycle_pnl/100:.2f}")
+        print(f"   Total Session PnL: ${self.total_session_pnl:.2f}")
+        print(f"   Markets Traded: {len(self.tracked_markets)}")
+        
+        # Reset market maker state
+        await self._reset_market_maker_state()
+        
+        # Signal for restart
+        global restart_event
+        restart_event.set()
+    
+    async def _reset_market_maker_state(self):
+        """Reset market maker state for new markets"""
+        print("🧹 Resetting market maker state...")
+        
+        # Clear all market-specific data
+        self.market_maker.orderbooks.clear()
+        self.market_maker.our_quotes.clear()
+        self.market_maker.positions.clear()
+        self.market_maker.avg_prices.clear()
+        self.market_maker.realized_pnl.clear()
+        self.market_maker.unrealized_pnl.clear()
+        self.market_maker.trade_log.clear()
+        
+        # Reset order manager state
+        if hasattr(self.market_maker.order_manager, 'reset_state'):
+            await self.market_maker.order_manager.reset_state()
+        
+        # Clear lifecycle tracking
+        self.tracked_markets.clear()
+        self.closed_markets.clear()
+        self.settled_markets.clear()
+        
+        print("✅ Market maker state reset complete")
+
+# Modified MarketMaker class with lifecycle manager integration
 class MarketMaker:
     def __init__(self, tickers, demo=True):
         self.tickers = tickers
+        self.demo = demo
         self.orderbooks = {t: {'yes': {}, 'no': {}} for t in tickers}
         self.our_quotes = {t: {'bid': None, 'ask': None} for t in tickers}
         self.positions = {t: 0 for t in tickers}
@@ -85,13 +274,32 @@ class MarketMaker:
         self.total_trades = 0
 
         # mm config
-        self.mm_threshold = 100
+        self.mm_threshold = 750
         self.mm_min_spread = 10      
         self.mm_size = 100   
         self.search = True # Enable searching for viable quotes rather than just top market maker quotes
         
         # Initialize order manager
         self.order_manager = OrderManager(self, demo=demo)
+        
+        # Initialize lifecycle manager
+        self.lifecycle_manager = MarketLifecycleManager(self, demo=demo)
+    
+    def update_tickers(self, new_tickers):
+        """Update tickers for new trading cycle"""
+        self.tickers = new_tickers
+        self.orderbooks = {t: {'yes': {}, 'no': {}} for t in new_tickers}
+        self.our_quotes = {t: {'bid': None, 'ask': None} for t in new_tickers}
+        self.positions = {t: 0 for t in new_tickers}
+        self.avg_prices = {t: 0.0 for t in new_tickers}
+        self.realized_pnl = {t: 0.0 for t in new_tickers}
+        self.unrealized_pnl = {t: 0.0 for t in new_tickers}
+        self.trade_log = {t: [] for t in new_tickers}
+        
+        # Update lifecycle manager
+        self.lifecycle_manager.tracked_markets = set(new_tickers)
+        self.lifecycle_manager.closed_markets.clear()
+        self.lifecycle_manager.settled_markets.clear()
     
     async def get_top_quote(self, ticker):
         """
@@ -166,63 +374,36 @@ class MarketMaker:
         
         bid_idx = 0
         ask_idx = 0
-        move_bid = True 
         
         while bid_idx < len(viable_bids) and ask_idx < len(viable_asks):
             bid_price = viable_bids[bid_idx]
             ask_price = viable_asks[ask_idx]
             
+            if ask_price <= bid_price:
+                # Ask too low, move to next higher ask
+                ask_idx += 1
+                continue
+                
             spread = ask_price - bid_price
             
-            if spread > self.mm_min_spread:
-                # valid spread found
-                best_bid, best_ask = bid_price, ask_price
-
-                 # if first idxs are a solution, return
-                if bid_idx == 0 and ask_idx == 0:
-                    return best_bid+1, best_ask-1  
-                else:
-                    # undo previous pointer movement and check in opposite direction
-                    if move_bid:
-                        ask_idx -= 1
-                        bid_idx += 1
-                    elif not move_bid:
-                        bid_idx -= 1
-                        ask_idx += 1
-
-                    bid_price = viable_bids[bid_idx]
-                    ask_price = viable_asks[ask_idx]
-                    spread = ask_price - bid_price
-                    if spread > self.mm_min_spread:
-                        # found another solution, take the average of both and round down if ask and up if bid
-
-                        ask_diff = abs(ask_price - best_ask)
-                        bid_diff = abs(bid_price - best_bid)
-                        if ask_diff == 1: # we can round down to give better price 
-                            avg_ask = int(math.floor((best_ask + ask_price) / 2))
-                        else: # round up for the extra 1c bc we greedy
-                            avg_ask = int(math.ceil((best_ask + ask_price) / 2))
-
-                        if bid_diff == 1: # we can round up to give better price
-                            avg_bid = int(math.ceil((best_bid + bid_price) / 2)) # maybe use floor if the markets are wide enough, we could get another 1c per contract
-                        else: # round down for the extra 1c bc we greedy
-                            avg_bid = int(math.floor((best_bid + bid_price) / 2)) # maybe use floor if the markets are wide enough, we could get another 1c per contract
-
-                        # we wont be top of orderbook here, but we will be inbetween two orders, so we can quote safely
-                        return avg_bid, avg_ask 
-
-                    else:
-                        # no more solutions
-                        return best_bid+1, best_ask-1
+            if spread >= self.mm_min_spread:
+                # Valid spread found
+                if spread < best_spread:
+                    best_spread = spread
+                    best_bid, best_ask = bid_price, ask_price
+                
+                # Try to tighten further by moving to next lower bid
+                bid_idx += 1
             else:
-                if move_bid:
-                    # Move bid pointer to find a higher bid
-                    bid_idx += 1
-                    move_bid = False
-                else:
-                    # Move ask pointer to find a lower ask
-                    ask_idx += 1
-                    move_bid = True
+                # Spread too narrow, try next higher ask
+                ask_idx += 1
+        
+        if best_bid is not None:
+            # debug_print(f"✅ {ticker} - Efficient search: Bid {best_bid}, Ask {best_ask}, Spread {best_spread}")
+            return best_bid, best_ask
+        else:
+            # debug_print(f"❌ {ticker} - No viable spread found (min: {self.mm_min_spread})")
+            return None, None
 
     async def get_viable_quote(self, ticker):
         """
@@ -485,6 +666,29 @@ class MarketMaker:
         
         return summary
 
+async def process_lifecycle_event(data):
+    """Process market lifecycle events"""
+    global mm
+    
+    if mm is None or mm.lifecycle_manager is None:
+        return
+        
+    msg_type = data.get("type")
+    msg = data.get("msg", {})
+    ticker = msg.get("market_ticker")
+    
+    if msg_type == "market_lifecycle_v2":
+        event_type = msg.get("event_type")
+        
+        if event_type == "close_date_updated":
+            await mm.lifecycle_manager.handle_market_close(ticker, msg)
+            
+        elif event_type == "determined":
+            await mm.lifecycle_manager.handle_market_determination(ticker, msg)
+            
+        elif event_type == "settled":
+            await mm.lifecycle_manager.handle_market_settlement(ticker, msg)
+
 async def kalshi_ws_stream(market_tickers):
     global mm  # Use the global market maker instance
     ws_url = "wss://api.elections.kalshi.com/trade-api/ws/v2"
@@ -505,73 +709,108 @@ async def kalshi_ws_stream(market_tickers):
     last_seq = {
         "orderbook_delta": 0,
         "trade": 0,
-        "fill": 0
+        "fill": 0,
+        "market_lifecycle_v2": 0
     }
 
     try:
         async with websockets.connect(ws_url, extra_headers=headers, ping_interval=20, ping_timeout=10) as ws:
             print("✅ WebSocket connected!")
 
-            # Subscribe to orderbook_delta
-            await ws.send(json.dumps({ "id": 1, "cmd": "subscribe", "params": {"channels": ["orderbook_delta"],"market_tickers": market_tickers}}))
+            # Subscribe to orderbook_delta for our specific markets
+            await ws.send(json.dumps({ 
+                "id": 1, 
+                "cmd": "subscribe", 
+                "params": {
+                    "channels": ["orderbook_delta"],
+                    "market_tickers": market_tickers
+                }
+            }))
             print("📡 Subscribed to orderbook_delta.")
 
-            # Subscribe to trade ( ALL TRADES )
-            await ws.send(json.dumps({ "id": 2, "cmd": "subscribe", "params": { "channels": ["trade"], "market_tickers": market_tickers}}))
+            # Subscribe to trade for our specific markets
+            await ws.send(json.dumps({ 
+                "id": 2, 
+                "cmd": "subscribe", 
+                "params": { 
+                    "channels": ["trade"], 
+                    "market_tickers": market_tickers
+                }
+            }))
             print("📡 Subscribed to trade.")
 
-            # Subscribe to fill ( JUST OUR ORDERS )
-            await ws.send(json.dumps({ "id": 3, "cmd": "subscribe", "params": {"channels": ["fill"],"market_tickers": market_tickers}}))
+            # Subscribe to fill for our specific markets
+            await ws.send(json.dumps({ 
+                "id": 3, 
+                "cmd": "subscribe", 
+                "params": {
+                    "channels": ["fill"],
+                    "market_tickers": market_tickers
+                }
+            }))
             print("📡 Subscribed to fill.")
 
+            # Subscribe to market_lifecycle_v2 for ALL markets (required by API)
+            await ws.send(json.dumps({ 
+                "id": 4, 
+                "cmd": "subscribe", 
+                "params": {
+                    "channels": ["market_lifecycle_v2"]
+                }
+            }))
+            print("📡 Subscribed to market_lifecycle_v2.")
+
             async for message in ws:
+                # Check for shutdown signal
+                if shutdown_event.is_set():
+                    print("🛑 Shutdown signal received, closing WebSocket...")
+                    break
+                    
                 data = json.loads(message)
                 msg_type = data.get("type")
                 seq = data.get("seq")
                 msg = data.get("msg", {})
 
-                # Determine channel by sid (this works if only one sid per channel)
+                # Handle subscription confirmations
                 if msg_type == "subscribed":
                     debug_print(f"✅ Subscribed to channel {msg['channel']} (sid: {msg['sid']})")
                     continue
 
-                # Determine channel by message type
+                # Process market lifecycle events (filter for our markets)
+                if msg_type == "market_lifecycle_v2":
+                    ticker = msg.get("market_ticker")
+                    if ticker in market_tickers:  # Only process our markets
+                        await process_lifecycle_event(data)
+                    continue
+
+                # Determine channel by message type for our trading data
                 if msg_type == "orderbook_snapshot" or msg_type == "orderbook_delta":
                     channel = "orderbook_delta"
-                
                 elif msg_type == "trade":
                     channel = "trade"
-                
                 elif msg_type == "fill":
                     channel = "fill"
-                
                 else:
-                    debug_print("Other message:", data)
+                    # debug_print("Other message:", data)
                     continue
 
                 ticker = msg.get("market_ticker")
 
                 # Check sequence gaps per channel per market
-                if ticker:
+                if ticker and seq is not None:
                     prev_seq = last_seq[channel]
                     if prev_seq != 0 and seq != prev_seq + 1:
                         print(f"⚠️ Sequence gap on {channel}! Got {seq}, expected {prev_seq+1}. Reconnecting.")
                         raise Exception("Sequence gap")
                     last_seq[channel] = seq
 
-                if msg_type == "trade":
-                    # Process trade message (keep this sync for now)
-                    mm.process_trade(ticker, msg)
-
-                elif msg_type == "orderbook_snapshot":
-                    # Update orderbook snapshot (now async)
+                # Process trading messages
+                if msg_type == "orderbook_snapshot":
                     await mm.update_orderbook_snapshot(ticker, msg)
-
                 elif msg_type == "orderbook_delta":
-                    # Update orderbook delta (now async)
                     await mm.update_orderbook_delta(ticker, msg)
-
-
+                elif msg_type == "trade":
+                    mm.process_trade(ticker, msg)
 
     except Exception as e:
         print("❌ WebSocket error or disconnection:", e)
@@ -588,78 +827,92 @@ async def start_ws_client(market_tickers):
         try:
             await kalshi_ws_stream(market_tickers)
         except Exception as e:
-            # cancel orders first
+            # Check if this is a planned restart vs error
+            if restart_event.is_set():
+                print("🔄 Planned restart detected, breaking reconnection loop...")
+                break
+                
+            # Cancel orders first on unexpected disconnection
             cancel_all_orders(demo=True)
-            print("🔄 Attempting to reconnect in 3 seconds...")
+            print("🔄 Attempting to reconnect in 5 seconds...")
             await asyncio.sleep(5)
 
 async def periodic_status_report():
     """Print portfolio summary and market status every 5 seconds."""
     global mm
     while True:
-        await asyncio.sleep(5)
-        if mm is None:
-            continue
+        try:
+            await asyncio.sleep(5)
+            if mm is None:
+                continue
+                
+            print("\n" + "="*80)
+            print(f"📊 PORTFOLIO STATUS - {time.strftime('%H:%M:%S')}")
+            print("="*80)
             
-        print("\n" + "="*80)
-        print(f"📊 PORTFOLIO STATUS - {time.strftime('%H:%M:%S')}")
-        print("="*80)
-        
-        # Get portfolio summary
-        summary = mm.get_portfolio_summary()
-        
-        # Print overall PnL
-        print(f"💰 Total Trades: {summary['total_trades']}")
-        print(f"💰 Total Realized PnL: ${summary['total_realized_pnl']:.2f}")
-        print(f"📈 Total Unrealized PnL: ${summary['total_unrealized_pnl']:.2f}")
-        print(f"🎯 Total PnL: ${summary['total_pnl']:.2f}")
-        
-        # NEW: Print order status
-        order_status = mm.order_manager.get_order_status()
-        print(f"📋 Active Orders: {order_status['active_orders_count']}")
-        print(f"⏳ Pending Fill Checks: {order_status['pending_fills_count']}")
-        
-        # Print positions if any
-        if summary['positions']:
-            print("\n📋 OPEN POSITIONS:")
-            for ticker, pos_info in summary['positions'].items():
-                print(f"  {ticker}: {pos_info['quantity']} @ {pos_info['avg_price']:.2f} "
-                      f"(R: ${pos_info['realized_pnl']:.2f}, U: ${pos_info['unrealized_pnl']:.2f})")
-        else:
-            print("\n📋 No open positions")
-        
-        # Print current market status
-        print("\n📈 CURRENT MARKETS & QUOTES:")
-        for ticker in mm.tickers:
-            try:
-                # Our calculated quotes
-                our_bid = mm.our_quotes[ticker]['bid']
-                our_ask = mm.our_quotes[ticker]['ask']
-                
-                # Our live quotes (actually in market)
-                live_bid = mm.order_manager.safe_get(mm.order_manager.live_quotes, ticker, 'bid')
-                live_ask = mm.order_manager.safe_get(mm.order_manager.live_quotes, ticker, 'ask')
-                
-                if not(live_bid is None or live_ask is None):
-                    # Get best market prices from orderbook
-                    yes_book = mm.orderbooks[ticker]['yes']
-                    no_book = mm.orderbooks[ticker]['no']
+            # Get portfolio summary
+            summary = mm.get_portfolio_summary()
+            
+            # Print overall PnL
+            print(f"💰 Total Trades: {summary['total_trades']}")
+            print(f"💰 Total Realized PnL: ${summary['total_realized_pnl']:.2f}")
+            print(f"📈 Total Unrealized PnL: ${summary['total_unrealized_pnl']:.2f}")
+            print(f"🎯 Total PnL: ${summary['total_pnl']:.2f}")
+            
+            # Show session total if available
+            if hasattr(mm.lifecycle_manager, 'total_session_pnl'):
+                print(f"🏆 Session Total PnL: ${mm.lifecycle_manager.total_session_pnl:.2f}")
+            
+            # Print order status
+            order_status = mm.order_manager.get_order_status()
+            print(f"📋 Active Orders: {order_status['active_orders_count']}")
+            print(f"⏳ Pending Fill Checks: {order_status['pending_fills_count']}")
+            
+            # Print positions if any
+            if summary['positions']:
+                print("\n📋 OPEN POSITIONS:")
+                for ticker, pos_info in summary['positions'].items():
+                    print(f"  {ticker}: {pos_info['quantity']} @ {pos_info['avg_price']:.2f} "
+                          f"(R: ${pos_info['realized_pnl']:.2f}, U: ${pos_info['unrealized_pnl']:.2f})")
+            else:
+                print("\n📋 No open positions")
+            
+            # Print current market status
+            print("\n📈 CURRENT MARKETS & QUOTES:")
+            for ticker in mm.tickers:
+                try:
+                    # Our calculated quotes
+                    our_bid = mm.our_quotes[ticker]['bid']
+                    our_ask = mm.our_quotes[ticker]['ask']
                     
-                    market_bid = max(yes_book.keys()) if yes_book else 0
-                    market_ask = min(no_book.keys()) if no_book else 100
+                    # Our live quotes (actually in market)
+                    live_bid = mm.order_manager.safe_get(mm.order_manager.live_quotes, ticker, 'bid')
+                    live_ask = mm.order_manager.safe_get(mm.order_manager.live_quotes, ticker, 'ask')
                     
-                    # Get just the last part of the ticker for cleaner display
-                    ticker_short = ticker.split('-')[-1] if '-' in ticker else ticker
+                    if not(live_bid is None or live_ask is None):
+                        # Get best market prices from orderbook
+                        yes_book = mm.orderbooks[ticker]['yes']
+                        no_book = mm.orderbooks[ticker]['no']
+                        
+                        market_bid = max(yes_book.keys()) if yes_book else 0
+                        market_ask = min(no_book.keys()) if no_book else 100
+                        
+                        # Get just the last part of the ticker for cleaner display
+                        ticker_short = ticker.split('-')[-1] if '-' in ticker else ticker
+                        
+                        print(f"  {ticker_short}:")
+                        print(f"    Market: {market_bid}/{market_ask}")
+                        print(f"    Calculated: {our_bid or 'None'}/{our_ask or 'None'}")
+                        print(f"    Live Orders: {live_bid or 'None'}/{live_ask or 'None'}")
                     
-                    print(f"  {ticker_short}:")
-                    print(f"    Market: {market_bid}/{market_ask}")
-                    print(f"    Calculated: {our_bid or 'None'}/{our_ask or 'None'}")
-                    print(f"    Live Orders: {live_bid or 'None'}/{live_ask or 'None'}")
-                
-            except Exception as e:
-                print(f"  {ticker}: Error displaying market data - {e}")
-        
-        print("="*80 + "\n")
+                except Exception as e:
+                    print(f"  {ticker}: Error displaying market data - {e}")
+            
+            print("="*80 + "\n")
+            
+        except Exception as e:
+            if not shutdown_event.is_set():
+                print(f"❌ Error in status report: {e}")
 
 async def start_ws_client_with_monitoring(market_tickers):
     """Start WebSocket client alongside periodic monitoring and fill checking."""
@@ -669,8 +922,83 @@ async def start_ws_client_with_monitoring(market_tickers):
     await asyncio.gather(
         start_ws_client(market_tickers),
         periodic_status_report(),
-        mm.order_manager.check_fills_periodically()  # NEW: Add fill checking
+        mm.order_manager.check_fills_periodically()
     )
+
+async def get_new_markets_and_restart():
+    """Get new markets and restart the trading cycle"""
+    global mm, restart_event
+    
+    print("\n🔍 Looking for new markets...")
+    try:
+        event = get_current_event()
+        new_markets = get_markets_from_event(event)
+        
+        if not new_markets:
+            print("❌ No new markets found. Waiting 30 seconds before trying again...")
+            await asyncio.sleep(30)
+            return False
+            
+        print(f"✅ Found {len(new_markets)} new markets:")
+        for market in new_markets:
+            print(f"   📈 {market}")
+        
+        # Update market maker with new tickers
+        mm.update_tickers(new_markets)
+        
+        # Clear restart event
+        restart_event.clear()
+        
+        # Start new trading cycle
+        print("🚀 Starting new trading cycle...")
+        await start_ws_client_with_monitoring(new_markets)
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error getting new markets: {e}")
+        await asyncio.sleep(30)
+        return False
+
+async def main_trading_loop():
+    """Main trading loop that handles market cycles"""
+    global mm, restart_event
+    
+    while not shutdown_event.is_set():
+        try:
+            # Get initial markets
+            event = get_current_event()
+            markets = get_markets_from_event(event)
+            
+            if not markets:
+                print("❌ No markets found. Waiting 30 seconds...")
+                await asyncio.sleep(30)
+                continue
+            
+            print(f"🎯 Starting with {len(markets)} markets:")
+            for market in markets:
+                print(f"   📈 {market}")
+            
+            # Initialize or update market maker
+            if mm is None:
+                mm = MarketMaker(markets, demo=True)
+            else:
+                mm.update_tickers(markets)
+            
+            # Start trading cycle
+            await start_ws_client_with_monitoring(markets)
+            
+            # Wait for restart signal
+            print("⏳ Waiting for market cycle completion...")
+            await restart_event.wait()
+            
+            # Brief pause before looking for new markets
+            print("💤 Pausing 10 seconds before looking for new markets...")
+            await asyncio.sleep(10)
+            
+        except Exception as e:
+            print(f"❌ Error in main trading loop: {e}")
+            await asyncio.sleep(30)
 
 if __name__ == "__main__":
     # Test authentication first
@@ -678,15 +1006,17 @@ if __name__ == "__main__":
     if not test_authentication(demo=True):
         print("❌ Authentication failed. Please check your credentials.")
         exit(1)
-        
-    event = get_current_event()
-    markets = get_markets_from_event(event)
-    print(f"Found {len(markets)} markets.")
-    for market in markets:
-        print(f"Market: {market}")
-    market_ticker = markets # ["KXBTC-25JUN0610-B103875"]  # example ticker
     
-    # Initialize market maker with demo=True for testing
-    mm = MarketMaker(market_ticker, demo=True)  # Set demo=False for production
+    print("🚀 Starting market making bot with lifecycle management...")
+    print("   🔄 Bot will automatically cycle through market generations")
+    print("   💰 PnL will be tracked across all cycles")
+    print("   🛑 Use Ctrl+C to gracefully shutdown")
     
-    asyncio.run(start_ws_client_with_monitoring(market_ticker))
+    try:
+        asyncio.run(main_trading_loop())
+    except KeyboardInterrupt:
+        print("\n🛑 Shutdown initiated by user")
+    except Exception as e:
+        print(f"\n❌ Fatal error: {e}")
+    finally:
+        cleanup_and_exit()
