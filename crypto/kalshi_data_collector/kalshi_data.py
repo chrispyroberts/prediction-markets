@@ -35,7 +35,7 @@ class KalshiDataCollector:
         
         # Activity monitoring
         self.last_orderbook_update_time = time.time()
-        self.orderbook_timeout = 60  # 1 minute timeout
+        self.orderbook_timeout = 15  # 15s minute timeout
         
         # Parquet storage setup
         self.orderbook_batch = []
@@ -469,53 +469,67 @@ async def kalshi_ws_stream(market_tickers):
             }))
             collector.logger.info("SUBSCRIPTION_SENT | Trade subscription sent")
 
-            async for message in ws:
-                # Timestamp immediately upon receiving message
-                receipt_timestamp_ms = time.time() * 1000
-                
+            # Replace async for loop with while loop that can handle timeouts
+            while not stale_data_event.is_set() and not shutdown_event.is_set():
                 try:
-                    data = json.loads(message)
-                    msg_type = data.get("type")
-                    seq = data.get("seq")
-                    msg = data.get("msg", {})
+                    # Wait for message with 30 second timeout
+                    message = await asyncio.wait_for(ws.recv(), timeout=30.0)
+                    
+                    # Timestamp immediately upon receiving message
+                    receipt_timestamp_ms = time.time() * 1000
+                    
+                    try:
+                        data = json.loads(message)
+                        msg_type = data.get("type")
+                        seq = data.get("seq")
+                        msg = data.get("msg", {})
 
-                    if msg_type == "subscribed":
-                        collector.logger.info(f"SUBSCRIPTION_CONFIRMED | Channel: {msg['channel']} | SID: {msg['sid']}")
-                        continue
+                        if msg_type == "subscribed":
+                            collector.logger.info(f"SUBSCRIPTION_CONFIRMED | Channel: {msg['channel']} | SID: {msg['sid']}")
+                            continue
 
-                    # Determine channel by message type
-                    if msg_type == "orderbook_snapshot" or msg_type == "orderbook_delta":
-                        channel = "orderbook_delta"
-                    elif msg_type == "trade":
-                        channel = "trade"
-                    else:
-                        debug_print("Other message:", data)
-                        continue
+                        # Determine channel by message type
+                        if msg_type == "orderbook_snapshot" or msg_type == "orderbook_delta":
+                            channel = "orderbook_delta"
+                        elif msg_type == "trade":
+                            channel = "trade"
+                        else:
+                            debug_print("Other message:", data)
+                            continue
 
-                    ticker = msg.get("market_ticker")
-                    if not ticker:
-                        continue
+                        ticker = msg.get("market_ticker")
+                        if not ticker:
+                            continue
 
-                    # Check sequence gaps per channel
-                    if channel in last_seq:
-                        prev_seq = last_seq[channel]
-                        if prev_seq != 0 and seq != prev_seq + 1:
-                            collector.logger.warning(f"SEQUENCE_GAP | Channel: {channel} | Got: {seq} | Expected: {prev_seq+1}")
-                            raise Exception("Sequence gap")
-                        last_seq[channel] = seq
+                        # Check sequence gaps per channel
+                        if channel in last_seq:
+                            prev_seq = last_seq[channel]
+                            if prev_seq != 0 and seq != prev_seq + 1:
+                                collector.logger.warning(f"SEQUENCE_GAP | Channel: {channel} | Got: {seq} | Expected: {prev_seq+1}")
+                                raise Exception("Sequence gap")
+                            last_seq[channel] = seq
 
-                    # Process messages with receipt timestamp
-                    if msg_type == "orderbook_snapshot":
-                        await collector.update_orderbook_snapshot(ticker, msg, receipt_timestamp_ms)
-                    elif msg_type == "orderbook_delta":
-                        await collector.update_orderbook_delta(ticker, msg, receipt_timestamp_ms)
-                    elif msg_type == "trade":
-                        collector.process_trade(ticker, msg, receipt_timestamp_ms)
-                        
-                except json.JSONDecodeError as e:
-                    collector.logger.error(f"JSON_DECODE_ERROR | Error: {str(e)} | Message: {message[:200]}")
-                except Exception as e:
-                    collector.logger.error(f"MESSAGE_PROCESSING_ERROR | Error: {str(e)} | Message type: {msg_type}")
+                        # Process messages with receipt timestamp
+                        if msg_type == "orderbook_snapshot":
+                            await collector.update_orderbook_snapshot(ticker, msg, receipt_timestamp_ms)
+                        elif msg_type == "orderbook_delta":
+                            await collector.update_orderbook_delta(ticker, msg, receipt_timestamp_ms)
+                        elif msg_type == "trade":
+                            collector.process_trade(ticker, msg, receipt_timestamp_ms)
+                            
+                    except json.JSONDecodeError as e:
+                        collector.logger.error(f"JSON_DECODE_ERROR | Error: {str(e)} | Message: {message[:200]}")
+                    except Exception as e:
+                        collector.logger.error(f"MESSAGE_PROCESSING_ERROR | Error: {str(e)} | Message type: {msg_type}")
+
+                except asyncio.TimeoutError:
+                    # No message received in 10 seconds - continue to check stale_data_event
+                    debug_print("WebSocket timeout - checking for shutdown/stale events")
+                    continue
+                    
+                except websockets.exceptions.ConnectionClosed:
+                    collector.logger.warning("WEBSOCKET_CLOSED | Connection closed by server")
+                    break
 
     except Exception as e:
         collector.logger.error(f"WEBSOCKET_ERROR | Error: {str(e)}")

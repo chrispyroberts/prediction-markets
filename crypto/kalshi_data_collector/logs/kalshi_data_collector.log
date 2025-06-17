@@ -1,50 +1,37 @@
-2025-06-17 13:09:04,480 | INFO | ================================================================================
-2025-06-17 13:09:04,480 | INFO | KALSHI DATA COLLECTOR STARTED
-2025-06-17 13:09:04,481 | INFO | ================================================================================
-2025-06-17 13:09:04,481 | INFO | Kalshi Data Collector initialized with 75 markets
-2025-06-17 13:09:04,481 | INFO | Orderbook file: data/kalshi_orderbook_data.parquet
-2025-06-17 13:09:04,481 | INFO | Trade file: data/kalshi_trade_data.parquet
-2025-06-17 13:09:04,481 | INFO | Batch sizes - Orderbook: 500, Trade: 200
-2025-06-17 13:09:04,481 | INFO | Orderbook timeout: 60 seconds
-2025-06-17 13:09:04,494 | INFO | MAIN_START | Restart count: 1 | Markets: 75
-2025-06-17 13:09:04,976 | INFO | WEBSOCKET_CONNECTED | Successfully connected to Kalshi WebSocket
-2025-06-17 13:09:04,976 | INFO | SUBSCRIPTION_SENT | Orderbook delta subscription sent
-2025-06-17 13:09:04,977 | INFO | SUBSCRIPTION_SENT | Trade subscription sent
-2025-06-17 13:09:05,090 | INFO | SUBSCRIPTION_CONFIRMED | Channel: orderbook_delta | SID: 1
-2025-06-17 13:09:05,090 | INFO | SUBSCRIPTION_CONFIRMED | Channel: trade | SID: 2
-2025-06-17 13:09:08,846 | INFO | SIGNAL_RECEIVED | Signal: 2
-2025-06-17 13:09:08,846 | INFO | SHUTDOWN_START | Beginning cleanup process
-2025-06-17 13:09:08,846 | INFO | FLUSH_BATCHES_START | Flushing remaining data
-2025-06-17 13:09:09,740 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 97 | Total written: 97
-2025-06-17 13:09:09,741 | INFO | FLUSH_BATCHES_COMPLETE | All batches successfully flushed
-2025-06-17 13:09:09,741 | INFO | SHUTDOWN_STATS | {'total_orderbook_updates': 97, 'total_trades': 0, 'updates_written': 97, 'trades_written': 0, 'pending_orderbook': 0, 'pending_trades': 0, 'time_since_last_orderbook_update': 0.93208909034729}
-2025-06-17 13:09:09,743 | INFO | SHUTDOWN_START | Beginning cleanup process
-2025-06-17 13:09:09,743 | INFO | FLUSH_BATCHES_START | Flushing remaining data
-2025-06-17 13:09:09,743 | INFO | FLUSH_BATCHES_COMPLETE | All batches successfully flushed
-2025-06-17 13:09:09,743 | INFO | SHUTDOWN_STATS | {'total_orderbook_updates': 97, 'total_trades': 0, 'updates_written': 97, 'trades_written': 0, 'pending_orderbook': 0, 'pending_trades': 0, 'time_since_last_orderbook_update': 0.9346551895141602}
-2025-06-17 13:09:34,224 | INFO | ================================================================================
-2025-06-17 13:09:34,224 | INFO | KALSHI DATA COLLECTOR STARTED
-2025-06-17 13:09:34,224 | INFO | ================================================================================
-2025-06-17 13:09:34,224 | INFO | Kalshi Data Collector initialized with 75 markets
-2025-06-17 13:09:34,225 | INFO | Orderbook file: data/kalshi_orderbook_data.parquet
-2025-06-17 13:09:34,225 | INFO | Trade file: data/kalshi_trade_data.parquet
-2025-06-17 13:09:34,225 | INFO | Batch sizes - Orderbook: 500, Trade: 200
-2025-06-17 13:09:34,225 | INFO | Orderbook timeout: 60 seconds
-2025-06-17 13:09:34,235 | INFO | MAIN_START | Restart count: 1 | Markets: 75
-2025-06-17 13:09:34,802 | INFO | WEBSOCKET_CONNECTED | Successfully connected to Kalshi WebSocket
-2025-06-17 13:09:34,803 | INFO | SUBSCRIPTION_SENT | Orderbook delta subscription sent
-2025-06-17 13:09:34,803 | INFO | SUBSCRIPTION_SENT | Trade subscription sent
-2025-06-17 13:09:34,913 | INFO | SUBSCRIPTION_CONFIRMED | Channel: trade | SID: 1
-2025-06-17 13:09:34,919 | INFO | SUBSCRIPTION_CONFIRMED | Channel: orderbook_delta | SID: 2
-2025-06-17 13:09:47,694 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 500
-2025-06-17 13:10:06,892 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 1000
-2025-06-17 13:10:28,514 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 1500
-2025-06-17 13:10:34,316 | INFO | STATUS_REPORT | {'total_orderbook_updates': 1633, 'total_trades': 17, 'updates_written': 1500, 'trades_written': 0, 'pending_orderbook': 133, 'pending_trades': 17, 'time_since_last_orderbook_update': 0.44554829597473145}
-2025-06-17 13:10:50,428 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 2000
-2025-06-17 13:11:10,498 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 2500
-2025-06-17 13:11:34,325 | INFO | STATUS_REPORT | {'total_orderbook_updates': 2916, 'total_trades': 38, 'updates_written': 2500, 'trades_written': 0, 'pending_orderbook': 416, 'pending_trades': 38, 'time_since_last_orderbook_update': 0.05705761909484863}
-2025-06-17 13:11:36,793 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 3000
-2025-06-17 13:11:55,731 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 3500
-2025-06-17 13:12:33,675 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 4000
-2025-06-17 13:12:34,328 | INFO | STATUS_REPORT | {'total_orderbook_updates': 4020, 'total_trades': 60, 'updates_written': 4000, 'trades_written': 0, 'pending_orderbook': 20, 'pending_trades': 60, 'time_since_last_orderbook_update': 0.020539522171020508}
-2025-06-17 13:13:02,931 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 4500
+2025-06-17 15:10:10,393 | INFO | SIGNAL_RECEIVED | Signal: 2
+2025-06-17 15:10:10,393 | INFO | SHUTDOWN_START | Beginning cleanup process
+2025-06-17 15:10:10,394 | INFO | FLUSH_BATCHES_START | Flushing remaining data
+2025-06-17 15:10:10,532 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 449 | Total written: 1949
+2025-06-17 15:10:10,566 | INFO | TRADE_BATCH_WRITTEN | Records: 49 | Total written: 49
+2025-06-17 15:10:10,566 | INFO | FLUSH_BATCHES_COMPLETE | All batches successfully flushed
+2025-06-17 15:10:10,566 | INFO | SHUTDOWN_STATS | {'total_orderbook_updates': 1949, 'total_trades': 49, 'updates_written': 1949, 'trades_written': 49, 'pending_orderbook': 0, 'pending_trades': 0, 'time_since_last_orderbook_update': 552.3883926868439}
+2025-06-17 15:10:10,688 | INFO | SHUTDOWN_START | Beginning cleanup process
+2025-06-17 15:10:10,688 | INFO | FLUSH_BATCHES_START | Flushing remaining data
+2025-06-17 15:10:10,688 | INFO | FLUSH_BATCHES_COMPLETE | All batches successfully flushed
+2025-06-17 15:10:10,688 | INFO | SHUTDOWN_STATS | {'total_orderbook_updates': 1949, 'total_trades': 49, 'updates_written': 1949, 'trades_written': 49, 'pending_orderbook': 0, 'pending_trades': 0, 'time_since_last_orderbook_update': 552.5105540752411}
+2025-06-17 15:10:16,652 | INFO | ================================================================================
+2025-06-17 15:10:16,652 | INFO | KALSHI DATA COLLECTOR STARTED
+2025-06-17 15:10:16,653 | INFO | ================================================================================
+2025-06-17 15:10:16,653 | INFO | Kalshi Data Collector initialized with 75 markets
+2025-06-17 15:10:16,653 | INFO | Orderbook file: data/kalshi_orderbook_data.parquet
+2025-06-17 15:10:16,653 | INFO | Trade file: data/kalshi_trade_data.parquet
+2025-06-17 15:10:16,653 | INFO | Batch sizes - Orderbook: 500, Trade: 200
+2025-06-17 15:10:16,653 | INFO | Orderbook timeout: 15 seconds
+2025-06-17 15:10:16,669 | INFO | MAIN_START | Restart count: 1 | Markets: 75
+2025-06-17 15:10:17,243 | INFO | WEBSOCKET_CONNECTED | Successfully connected to Kalshi WebSocket
+2025-06-17 15:10:17,244 | INFO | SUBSCRIPTION_SENT | Orderbook delta subscription sent
+2025-06-17 15:10:17,244 | INFO | SUBSCRIPTION_SENT | Trade subscription sent
+2025-06-17 15:10:17,357 | INFO | SUBSCRIPTION_CONFIRMED | Channel: trade | SID: 1
+2025-06-17 15:10:17,357 | INFO | SUBSCRIPTION_CONFIRMED | Channel: orderbook_delta | SID: 2
+2025-06-17 15:10:49,201 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 500
+2025-06-17 15:11:16,727 | INFO | STATUS_REPORT | {'total_orderbook_updates': 982, 'total_trades': 11, 'updates_written': 500, 'trades_written': 0, 'pending_orderbook': 482, 'pending_trades': 11, 'time_since_last_orderbook_update': 0.4049844741821289}
+2025-06-17 15:11:19,408 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 1000
+2025-06-17 15:11:48,650 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 1500
+2025-06-17 15:12:16,731 | INFO | STATUS_REPORT | {'total_orderbook_updates': 1857, 'total_trades': 19, 'updates_written': 1500, 'trades_written': 0, 'pending_orderbook': 357, 'pending_trades': 19, 'time_since_last_orderbook_update': 0.07194042205810547}
+2025-06-17 15:12:31,075 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 2000
+2025-06-17 15:13:08,562 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 2500
+2025-06-17 15:13:16,736 | INFO | STATUS_REPORT | {'total_orderbook_updates': 2627, 'total_trades': 38, 'updates_written': 2500, 'trades_written': 0, 'pending_orderbook': 127, 'pending_trades': 38, 'time_since_last_orderbook_update': 0.07129192352294922}
+2025-06-17 15:13:46,693 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 3000
+2025-06-17 15:14:16,750 | INFO | STATUS_REPORT | {'total_orderbook_updates': 3495, 'total_trades': 47, 'updates_written': 3000, 'trades_written': 0, 'pending_orderbook': 495, 'pending_trades': 47, 'time_since_last_orderbook_update': 0.12891459465026855}
+2025-06-17 15:14:17,000 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 3500
+2025-06-17 15:14:39,785 | INFO | ORDERBOOK_BATCH_WRITTEN | Records: 500 | Total written: 4000

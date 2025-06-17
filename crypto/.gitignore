@@ -8,4 +8,6 @@
 **/.public_key_demo
 *.parquet
 **/*.parquet
-
+*.log
+**/*.log
+*/*.log
