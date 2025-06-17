@@ -85,8 +85,8 @@ class MarketMaker:
         self.total_trades = 0
 
         # mm config
-        self.mm_threshold = 100
-        self.mm_min_spread = 10      
+        self.mm_threshold = 80
+        self.mm_min_spread = 8      
         self.mm_size = 100   
         self.search = True # Enable searching for viable quotes rather than just top market maker quotes
         
@@ -162,7 +162,6 @@ class MarketMaker:
         
         # Two-pointer approach to find best spread - O(n + m)
         best_bid, best_ask = None, None
-        best_spread = float('inf')
         
         bid_idx = 0
         ask_idx = 0
@@ -180,13 +179,22 @@ class MarketMaker:
 
                  # if first idxs are a solution, return
                 if bid_idx == 0 and ask_idx == 0:
-                    return best_bid+1, best_ask-1  
+                    return best_bid, best_ask
                 else:
                     # undo previous pointer movement and check in opposite direction
                     if move_bid:
+                        if ask_idx -1 < 0 or bid_idx + 1 >= len(viable_bids):
+                            # no more solutions in this direction
+                            return best_bid, best_ask
+                        
                         ask_idx -= 1
                         bid_idx += 1
+
                     elif not move_bid:
+                        if bid_idx - 1 < 0 or ask_idx + 1 >= len(viable_asks):
+                            # no more solutions in this direction
+                            return best_bid, best_ask
+                        
                         bid_idx -= 1
                         ask_idx += 1
 
@@ -213,7 +221,7 @@ class MarketMaker:
 
                     else:
                         # no more solutions
-                        return best_bid+1, best_ask-1
+                        return best_bid, best_ask
             else:
                 if move_bid:
                     # Move bid pointer to find a higher bid
@@ -223,6 +231,8 @@ class MarketMaker:
                     # Move ask pointer to find a lower ask
                     ask_idx += 1
                     move_bid = True
+
+        return None, None
 
     async def get_viable_quote(self, ticker):
         """
