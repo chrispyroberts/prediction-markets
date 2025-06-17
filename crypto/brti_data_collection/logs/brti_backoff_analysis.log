@@ -1,0 +1,35 @@
+2025-06-17 12:21:13,712 | INFO | ================================================================================
+2025-06-17 12:21:13,712 | INFO | BRTI DATA COLLECTOR STARTED
+2025-06-17 12:21:13,713 | INFO | ================================================================================
+2025-06-17 12:21:33,718 | INFO | CONNECTION_TEST | {"test_time": "2025-06-17T12:21:33.718789", "success": true, "error_message": null}
+2025-06-17 12:21:33,719 | INFO | SESSION_START | Session #1 | Time: 2025-06-17 12:21:33.719680
+2025-06-17 12:21:33,729 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:21:33.729057", "price": 104276.83, "session_update_count": 1, "session_duration_minutes": 0.0}
+2025-06-17 12:21:34,067 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:21:34.067588", "price": 104292.41, "session_update_count": 2, "session_duration_minutes": 0.01}
+2025-06-17 12:21:35,037 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:21:35.037042", "price": 104294.71, "session_update_count": 3, "session_duration_minutes": 0.02}
+2025-06-17 12:21:36,060 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:21:36.060021", "price": 104283.55, "session_update_count": 4, "session_duration_minutes": 0.04}
+2025-06-17 12:21:37,030 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:21:37.030449", "price": 104285.49, "session_update_count": 5, "session_duration_minutes": 0.06}
+2025-06-17 12:23:11,960 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:23:11.960304", "price": 104224.91, "session_update_count": 100, "session_duration_minutes": 1.64}
+2025-06-17 12:23:55,072 | INFO | SESSION_END | {"session_number": 1, "start_time": "2025-06-17T12:21:33.719670", "end_time": "2025-06-17T12:23:55.072647", "duration_seconds": 141.35, "duration_minutes": 2.36, "price_updates_received": 143, "end_reason": "user_interrupt", "retry_count": null, "updates_per_minute": 60.7}
+2025-06-17 12:23:55,073 | INFO | SESSION_SUMMARY | Session #1 lasted 2.4 minutes with 143 updates | Reason: user_interrupt
+2025-06-17 12:23:55,574 | INFO | SHUTDOWN | All remaining batches flushed
+2025-06-17 12:23:59,077 | INFO | ================================================================================
+2025-06-17 12:23:59,078 | INFO | BRTI DATA COLLECTOR STARTED
+2025-06-17 12:23:59,078 | INFO | ================================================================================
+2025-06-17 12:24:09,329 | INFO | CONNECTION_TEST | {"test_time": "2025-06-17T12:24:09.329595", "success": true, "error_message": null}
+2025-06-17 12:24:09,330 | INFO | SESSION_START | Session #1 | Time: 2025-06-17 12:24:09.330643
+2025-06-17 12:24:09,348 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:24:09.348788", "price": 104261.34, "session_update_count": 1, "session_duration_minutes": 0.0}
+2025-06-17 12:24:10,042 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:24:10.042106", "price": 104256.0, "session_update_count": 2, "session_duration_minutes": 0.01}
+2025-06-17 12:24:11,066 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:24:11.066549", "price": 104258.7, "session_update_count": 3, "session_duration_minutes": 0.03}
+2025-06-17 12:24:12,052 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:24:12.052019", "price": 104248.3, "session_update_count": 4, "session_duration_minutes": 0.05}
+2025-06-17 12:24:13,047 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:24:13.047212", "price": 104250.55, "session_update_count": 5, "session_duration_minutes": 0.06}
+2025-06-17 12:25:48,019 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:25:48.019432", "price": 104217.77, "session_update_count": 100, "session_duration_minutes": 1.64}
+2025-06-17 12:27:28,011 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:27:28.011527", "price": 104182.86, "session_update_count": 200, "session_duration_minutes": 3.31}
+2025-06-17 12:29:08,047 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:29:08.047260", "price": 104246.58, "session_update_count": 300, "session_duration_minutes": 4.98}
+2025-06-17 12:30:48,039 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:30:48.038963", "price": 104182.96, "session_update_count": 400, "session_duration_minutes": 6.65}
+2025-06-17 12:32:28,043 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:32:28.043457", "price": 104206.69, "session_update_count": 500, "session_duration_minutes": 8.31}
+2025-06-17 12:34:08,036 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:34:08.035926", "price": 104150.34, "session_update_count": 600, "session_duration_minutes": 9.98}
+2025-06-17 12:35:48,027 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:35:48.026888", "price": 104270.36, "session_update_count": 700, "session_duration_minutes": 11.64}
+2025-06-17 12:37:28,043 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:37:28.042993", "price": 104372.58, "session_update_count": 800, "session_duration_minutes": 13.31}
+2025-06-17 12:39:08,041 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:39:08.041088", "price": 104429.55, "session_update_count": 900, "session_duration_minutes": 14.98}
+2025-06-17 12:40:48,054 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:40:48.054816", "price": 104393.7, "session_update_count": 1000, "session_duration_minutes": 16.65}
+2025-06-17 12:42:28,048 | INFO | PRICE_UPDATE | {"update_time": "2025-06-17T12:42:28.048687", "price": 104344.93, "session_update_count": 1100, "session_duration_minutes": 18.31}
