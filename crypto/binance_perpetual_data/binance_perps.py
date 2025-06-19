@@ -113,6 +113,11 @@ class BinanceFuturesStreamer:
         
     async def update_orderbook_state(self, data, receipt_timestamp):
         """Update current orderbook state with receipt timestamp"""
+
+
+        print(list(data.keys()))
+        print(data)
+
         async with self.orderbook_lock:
             self.current_orderbook = {
                 'bid_price': float(data['b']),
@@ -126,7 +131,7 @@ class BinanceFuturesStreamer:
         bid_price = float(data['b'])
         ask_price = float(data['a'])
         mid_price = (bid_price + ask_price) / 2
-        # print(f"📊 BOOK UPDATE: Mid ${mid_price:,.2f}")
+        print(f"📊 BOOK UPDATE: Mid ${mid_price:,.2f}")
         
     async def add_trade_to_buffer(self, data, receipt_timestamp):
         """Add trade to aggregation buffer with receipt timestamp"""

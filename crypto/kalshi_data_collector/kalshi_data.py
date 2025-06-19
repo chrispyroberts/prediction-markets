@@ -35,7 +35,7 @@ class KalshiDataCollector:
         
         # Activity monitoring
         self.last_orderbook_update_time = time.time()
-        self.orderbook_timeout = 15  # 15s minute timeout
+        self.orderbook_timeout = 60  # timeout
         
         # Parquet storage setup
         self.orderbook_batch = []
@@ -52,7 +52,7 @@ class KalshiDataCollector:
         self.total_trades = 0
         self.updates_written = 0
         self.trades_written = 0
-        
+
         # Ensure data directory exists
         os.makedirs('data', exist_ok=True)
         os.makedirs('logs', exist_ok=True)
@@ -60,6 +60,8 @@ class KalshiDataCollector:
         # Parquet file paths
         self.orderbook_parquet = 'data/kalshi_orderbook_data.parquet'
         self.trade_parquet = 'data/kalshi_trade_data.parquet'
+
+        self.background_threads = []  # Track background threads for batch writing
         
         # EST timezone
         self.est_tz = pytz.timezone('US/Eastern')
@@ -237,12 +239,18 @@ class KalshiDataCollector:
                 batch_to_write = self.orderbook_batch.copy()
                 self.orderbook_batch.clear()
                 
-                # Write in background thread
-                threading.Thread(
+                # Create and track background thread
+                thread = threading.Thread(
                     target=self.write_orderbook_batch_to_parquet,
                     args=(batch_to_write,),
                     daemon=True
-                ).start()
+                )
+                thread.start()
+                self.background_threads.append(thread)
+                
+                # Clean up completed threads
+                self.background_threads = [t for t in self.background_threads if t.is_alive()]
+
         
         debug_print(f"TOB CHANGE {ticker.split('-')[-1]}: {current_tob['bid']}/{current_tob['ask']} | Mid: {mid_price:.1f}")
         
@@ -348,16 +356,23 @@ class KalshiDataCollector:
         self.logger.info("FLUSH_BATCHES_START | Flushing remaining data")
         
         try:
+            # Write orderbook batch synchronously
             with self.orderbook_batch_lock:
                 if self.orderbook_batch:
+                    self.logger.info(f"FLUSH_ORDERBOOK | Writing {len(self.orderbook_batch)} pending records")
                     self.write_orderbook_batch_to_parquet(self.orderbook_batch)
                     self.orderbook_batch.clear()
                     
+            # Write trade batch synchronously  
             with self.trade_batch_lock:
                 if self.trade_batch:
+                    self.logger.info(f"FLUSH_TRADES | Writing {len(self.trade_batch)} pending records")
                     self.write_trade_batch_to_parquet(self.trade_batch)
                     self.trade_batch.clear()
-                    
+            
+            # Now wait for any previously spawned background threads
+            self.cleanup_threads(timeout=10.0)
+                        
             self.logger.info("FLUSH_BATCHES_COMPLETE | All batches successfully flushed")
             
         except Exception as e:
@@ -375,10 +390,40 @@ class KalshiDataCollector:
             'time_since_last_orderbook_update': time.time() - self.last_orderbook_update_time
         }
 
+    def cleanup_threads(self, timeout=5.0):
+        """Wait for all background threads to complete with proper timeout handling"""
+        if not self.background_threads:
+            return
+            
+        self.logger.info(f"THREAD_CLEANUP_START | Waiting for {len(self.background_threads)} background threads")
+        
+        start_time = time.time()
+        alive_threads = [t for t in self.background_threads if t.is_alive()]
+        
+        for thread in alive_threads:
+            remaining_time = timeout - (time.time() - start_time)
+            if remaining_time <= 0:
+                self.logger.warning(f"THREAD_CLEANUP_TIMEOUT | {len([t for t in alive_threads if t.is_alive()])} threads still running")
+                break
+                
+            thread.join(timeout=remaining_time)
+            
+        # Check final status
+        still_alive = [t for t in self.background_threads if t.is_alive()]
+        if still_alive:
+            self.logger.warning(f"THREAD_CLEANUP_INCOMPLETE | {len(still_alive)} threads did not complete within {timeout}s")
+        else:
+            self.logger.info("THREAD_CLEANUP_COMPLETE | All background threads completed successfully")
+            
+        # Clear the list
+        self.background_threads = []
+
+
 # Global instance
 collector = None
 shutdown_event = asyncio.Event()
 stale_data_event = asyncio.Event()
+
 
 def cleanup_and_exit():
     """Cleanup data collector on exit"""
@@ -388,6 +433,10 @@ def cleanup_and_exit():
         if collector is not None:
             collector.logger.info("SHUTDOWN_START | Beginning cleanup process")
             collector.flush_remaining_batches()
+            
+            # Wait for background threads
+            if hasattr(collector, 'cleanup_threads'):
+                collector.cleanup_threads()
             
             # Log final stats
             stats = collector.get_stats()
@@ -555,11 +604,11 @@ async def orderbook_activity_monitor():
     global collector, stale_data_event
     
     while not shutdown_event.is_set() and not stale_data_event.is_set():
-        await asyncio.sleep(10)  # Check every 10 seconds
+        await asyncio.sleep(15)  # Check every 10 seconds
         
         if collector is None:
             continue
-            
+ 
         if collector.is_orderbook_stale():
             time_since_update = time.time() - collector.last_orderbook_update_time
             collector.logger.warning(f"STALE_ORDERBOOK_DETECTED | Time since last update: {time_since_update:.1f} seconds")
@@ -608,95 +657,92 @@ async def start_data_collection(market_tickers):
     """Start data collection with monitoring"""
     global collector
     
-    # Start all tasks concurrently
-    await asyncio.gather(
-        start_ws_client(market_tickers),
-        periodic_status_report(),
-        orderbook_activity_monitor(),  # NEW: Monitor for stale data
-        return_exceptions=True
-    )
+    # Create tasks explicitly so we can cancel them
+    tasks = [
+        asyncio.create_task(start_ws_client(market_tickers)),
+        asyncio.create_task(periodic_status_report()),
+        asyncio.create_task(orderbook_activity_monitor())
+    ]
+    
+    try:
+        # Wait for any task to complete
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        
+        # Cancel all pending tasks
+        for task in pending:
+            task.cancel()
+            
+        # Wait for cancellation to complete
+        await asyncio.gather(*pending, return_exceptions=True)
+        
+    except Exception as e:
+        # Cancel all tasks on error
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 def main():
-    """Main function with error recovery"""
-    global collector, stale_data_event
-    restart_count = 0
+    """Main function that exits on stale data"""
+    global collector, stale_data_event, shutdown_event
     
-    while True:
-        try:
-            restart_count += 1
+    try:
+        # Reset events
+        stale_data_event = asyncio.Event()
+        shutdown_event = asyncio.Event()
+        
+        # Test authentication first
+        if not test_authentication(demo=True):
+            print("❌ Authentication failed. Please check your credentials.")
+            return 1  # Exit code 1 for auth failure
             
-            # Reset stale data event for new iteration
-            stale_data_event.clear()
+        # Get current markets
+        event = get_current_event()
+        markets = get_markets_from_event(event)
+        
+        # Initialize data collector
+        collector = KalshiDataCollector(markets, demo=True)
+        
+        print("🚀 Starting Kalshi Data Collection")
+        print(f"📊 Tracking {len(markets)} election markets")
+        for market in markets:
+            print(market)
+        print(f"💾 Parquet storage with top-of-book change detection")
+        print(f"⏰ Auto-restart if no orderbook updates for {collector.orderbook_timeout} seconds")
+        print("📝 Detailed logging: logs/kalshi_data_collector.log")
+        print("Press Ctrl+C to stop\n")
+        
+        collector.logger.info(f"MAIN_START | Markets: {len(markets)}")
+        
+        # Start data collection
+        asyncio.run(start_data_collection(markets))
+        
+        # If we reach here and stale_data_event is set, exit with code 99
+        if stale_data_event.is_set():
+            collector.logger.info("STALE_DATA_EXIT | Exiting for restart due to stale orderbook data")
+            cleanup_and_exit()
+            return 99  # Special exit code for stale data
             
-            # Test authentication first
-            if not test_authentication(demo=True):
-                print("❌ Authentication failed. Please check your credentials.")
-                return
-                
-            # Get current markets
-            event = get_current_event()
-            markets = get_markets_from_event(event)
-            
-            # Initialize data collector
-            collector = KalshiDataCollector(markets, demo=True)
-            
-            if restart_count == 1:
-                print("🚀 Starting Kalshi Data Collection")
-                print(f"📊 Tracking {len(markets)} election markets")
-                for market in markets:
-                    print(f" - {market}")
-                print("💾 Parquet storage with top-of-book change detection")
-                print("⏰ Auto-reset if no orderbook updates for 1+ minute")
-                print("📝 Detailed logging: logs/kalshi_data_collector.log")
-                print("Press Ctrl+C to stop\n")
-            else:
-                reason = "stale data detected" if stale_data_event.is_set() else "error recovery"
-                print(f"🔄 Restarting data collection (attempt #{restart_count}) - {reason}")
-                collector.logger.info(f"RESTART_TRIGGERED | Reason: {reason} | Attempt: {restart_count}")
-            
-            collector.logger.info(f"MAIN_START | Restart count: {restart_count} | Markets: {len(markets)}")
-            
-            # Start data collection
-            asyncio.run(start_data_collection(markets))
-            
-            # If we reach here and stale_data_event is set, it's a planned restart
-            if stale_data_event.is_set():
-                collector.logger.info("PLANNED_RESTART | Restarting due to stale orderbook data")
-                collector.flush_remaining_batches()
-                collector = None
-                time.sleep(2)  # Brief pause before restart
-                continue
-            
-        except KeyboardInterrupt:
-            if collector:
-                collector.logger.info("KEYBOARD_INTERRUPT | Received interrupt signal")
-            print("\n👋 Shutting down...")
-            break
-            
-        except Exception as e:
-            error_msg = f"MAIN_ERROR | Restart: {restart_count} | Error: {str(e)}"
-            if collector:
-                collector.logger.error(error_msg)
-                collector.logger.error(f"TRACEBACK | {traceback.format_exc()}")
-            else:
-                print(f"❌ {error_msg}")
-            
-            # Flush any remaining data before restart
-            if collector is not None:
-                try:
-                    collector.flush_remaining_batches()
-                except Exception as flush_error:
-                    if collector:
-                        collector.logger.error(f"EMERGENCY_FLUSH_ERROR | Error: {str(flush_error)}")
-            
-            print(f"🔄 Restarting in 5 seconds... (restart #{restart_count})")
-            time.sleep(5)
-            
-            # Reset collector for fresh start
-            collector = None
-            
-    # Final cleanup
-    cleanup_and_exit()
+    except KeyboardInterrupt:
+        if collector:
+            collector.logger.info("KEYBOARD_INTERRUPT | Received interrupt signal")
+        print("\n👋 Shutting down...")
+        cleanup_and_exit()
+        return 0  # Normal exit
+        
+    except Exception as e:
+        error_msg = f"MAIN_ERROR | Error: {str(e)}"
+        if collector:
+            collector.logger.error(error_msg)
+            collector.logger.error(f"TRACEBACK | {traceback.format_exc()}")
+        else:
+            print(f"❌ {error_msg}")
+        
+        cleanup_and_exit()
+        return 2  # Error exit
+
+if __name__ == "__main__":
+    sys.exit(main())
 
 if __name__ == "__main__":
     main()
