@@ -11,7 +11,8 @@
 *.log
 **/*.log
 */*.log
-/binance_rust_data_collection/target/** 
-/binance_rust/target/**
+**/binance_rust_data_collection/target/** 
+**/binance_collector/target/**
+**/binance_rust/target**
 **/__pycache__/
 __pycache__/
