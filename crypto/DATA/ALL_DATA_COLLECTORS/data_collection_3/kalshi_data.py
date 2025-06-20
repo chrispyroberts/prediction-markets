@@ -13,6 +13,8 @@ import logging
 import atexit # Shutdown handler
 import signal
 import sys
+import psycopg2
+import psycopg2.extras
 
 from utils import sign_pss_text, private_key_obj, KALSHI_API_KEY_ID, get_current_event, get_markets_from_event, test_authentication
 
@@ -21,6 +23,13 @@ DEBUG = False
 def debug_print(*args, **kwargs):
     if DEBUG:
         print(*args, **kwargs)
+
+# === Database Configuration ===
+DB_HOST = "localhost"
+DB_PORT = "5432"
+DB_NAME = "chris_db"
+DB_USER = "postgres"
+DB_PASS = "password"
 
 class KalshiDataCollector:
     def __init__(self, market_tickers, demo=True):
@@ -35,17 +44,17 @@ class KalshiDataCollector:
         
         # Activity monitoring
         self.last_orderbook_update_time = time.time()
-        self.orderbook_timeout = 60  # timeout
+        self.orderbook_timeout = 300  # timeout
         
-        # Parquet storage setup
+        # Parquet/DB storage setup
         self.orderbook_batch = []
         self.trade_batch = []
         self.orderbook_batch_lock = threading.Lock()
         self.trade_batch_lock = threading.Lock()
         
         # Batch sizes for efficient writing
-        self.orderbook_batch_size = 500  # Write every 500 orderbook updates
-        self.trade_batch_size = 200      # Write every 200 trade records
+        self.orderbook_batch_size = 500  # Write every 50 orderbook updates
+        self.trade_batch_size = 50      # Write every 50 trade records
         
         # Data collection stats
         self.total_orderbook_updates = 0
@@ -53,14 +62,10 @@ class KalshiDataCollector:
         self.updates_written = 0
         self.trades_written = 0
 
-        # Ensure data directory exists
+        # Ensure directories exist
         os.makedirs('../data', exist_ok=True)
-        os.makedirs('../logs', exist_ok=True)
+        os.makedirs(r'C:\Users\chris\OneDrive\Desktop\Programming\Trading\prediction markets\crypto\DATA\data_collection_3\logs', exist_ok=True)
         
-        # Parquet file paths
-        self.orderbook_parquet = '../data/kalshi_orderbook_data.parquet'
-        self.trade_parquet = '../data/kalshi_trade_data.parquet'
-
         self.background_threads = []  # Track background threads for batch writing
         
         # EST timezone
@@ -69,9 +74,12 @@ class KalshiDataCollector:
         # Setup logging
         self.setup_logging()
         
+        # Establish database connection
+        self.conn = self.connect_to_db()
+        
         self.logger.info(f"Kalshi Data Collector initialized with {len(market_tickers)} markets")
-        self.logger.info(f"Orderbook file: {self.orderbook_parquet}")
-        self.logger.info(f"Trade file: {self.trade_parquet}")
+        self.logger.info(f"Orderbook storage: TimescaleDB")
+        self.logger.info(f"Trade storage: TimescaleDB")
         self.logger.info(f"Batch sizes - Orderbook: {self.orderbook_batch_size}, Trade: {self.trade_batch_size}")
         self.logger.info(f"Orderbook timeout: {self.orderbook_timeout} seconds")
         
@@ -82,7 +90,7 @@ class KalshiDataCollector:
         self.logger.setLevel(logging.INFO)
         
         # Create file handler
-        log_file = '../logs/kalshi_data_collector.log'
+        log_file = r'C:\Users\chris\OneDrive\Desktop\Programming\Trading\prediction markets\crypto\DATA\data_collection_3\logs\data_logs_3.log'
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.INFO)
         
@@ -104,70 +112,98 @@ class KalshiDataCollector:
         self.logger.info("KALSHI DATA COLLECTOR STARTED")
         self.logger.info("="*80)
         
+    def connect_to_db(self):
+        """Establishes and returns a connection to the PostgreSQL database."""
+        try:
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                port=DB_PORT,
+                dbname=DB_NAME,
+                user=DB_USER,
+                password=DB_PASS
+            )
+            self.logger.info(f"DATABASE_CONNECTED | Successfully connected to '{DB_NAME}' on {DB_HOST}:{DB_PORT}")
+            return conn
+        except psycopg2.OperationalError as e:
+            self.logger.error(f"DATABASE_CONNECTION_ERROR | Could not connect to database: {e}")
+            print(f"FATAL: Could not connect to the database. Please check credentials and that the Docker container is running. Error: {e}")
+            sys.exit(1) # Exit if we can't connect at startup
+
     def timestamp_to_est(self, timestamp_ms):
         """Convert timestamp to EST string"""
         dt = datetime.fromtimestamp(timestamp_ms / 1000, tz=pytz.UTC)
         est_time = dt.astimezone(self.est_tz)
         return est_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         
-    def write_orderbook_batch_to_parquet(self, batch_data):
-        """Write orderbook batch to Parquet file"""
+    def write_orderbook_batch_to_db(self, batch_data):
         if not batch_data:
             return
-            
+
+        # Deduplicate: keep only the last occurrence for each (timestamp_ms, ticker)
+        deduped = {}
+        for row in batch_data:
+            key = (row[0], row[1])  # (timestamp_ms, ticker)
+            deduped[key] = row
+        deduped_batch = list(deduped.values())
+
+        if not self.conn:
+            self.logger.error("DB_WRITE_ERROR | No database connection available.")
+            return
+
         try:
-            df = pd.DataFrame(batch_data, columns=[
-                'timestamp_est', 'timestamp_ms', 'ticker', 'best_bid', 'best_bid_qty', 
-                'best_ask', 'best_ask_qty', 'spread', 'mid_price'
-            ])
-            
-            # Convert timestamp columns to appropriate types
-            df['timestamp_est'] = pd.to_datetime(df['timestamp_est'])
-            df['timestamp_ms'] = df['timestamp_ms'].astype('int64')
-            
-            # Append to existing parquet file or create new one
-            if os.path.exists(self.orderbook_parquet):
-                existing_df = pd.read_parquet(self.orderbook_parquet)
-                combined_df = pd.concat([existing_df, df], ignore_index=True)
-                combined_df.to_parquet(self.orderbook_parquet, compression='snappy', index=False)
-            else:
-                df.to_parquet(self.orderbook_parquet, compression='snappy', index=False)
-                
-            self.updates_written += len(batch_data)
-            self.logger.info(f"ORDERBOOK_BATCH_WRITTEN | Records: {len(batch_data)} | Total written: {self.updates_written}")
-            
-        except Exception as e:
-            self.logger.error(f"ORDERBOOK_BATCH_WRITE_ERROR | Error: {str(e)} | Batch size: {len(batch_data)}")
-        
-    def write_trade_batch_to_parquet(self, batch_data):
-        """Write trade batch to Parquet file"""
+            with self.conn.cursor() as cur:
+                psycopg2.extras.execute_values(
+                    cur,
+                    """
+                    INSERT INTO kalshi_orderbooks (timestamp_ms, ticker, best_bid, best_bid_qty, best_ask, best_ask_qty)
+                    VALUES %s
+                    ON CONFLICT (timestamp_ms, ticker) DO UPDATE SET
+                        best_bid = EXCLUDED.best_bid,
+                        best_bid_qty = EXCLUDED.best_bid_qty,
+                        best_ask = EXCLUDED.best_ask,
+                        best_ask_qty = EXCLUDED.best_ask_qty
+                    """,
+                    deduped_batch,
+                    page_size=len(deduped_batch)
+                )
+                self.conn.commit()
+                self.updates_written += len(deduped_batch)
+                self.logger.info(f"DB_ORDERBOOK_BATCH_WRITTEN | Records: {len(deduped_batch)} | Total written: {self.updates_written}")
+        except (Exception, psycopg2.Error) as e:
+            self.logger.error(f"DB_ORDERBOOK_WRITE_ERROR | Error: {str(e)} | Batch size: {len(deduped_batch)}")
+            if self.conn:
+                self.conn.rollback()
+
+    def write_trade_batch_to_db(self, batch_data):
+        """Write trade batch to the TimescaleDB database."""
         if not batch_data:
             return
-            
+
+        if not self.conn:
+            self.logger.error("DB_WRITE_ERROR | No database connection available for trades.")
+            return
+
         try:
-            df = pd.DataFrame(batch_data, columns=[
-                'timestamp_est', 'timestamp_ms', 'ticker', 'yes_price', 'no_price',
-                'count', 'taker_side', 'trade_value'
-            ])
-            
-            # Convert timestamp columns to appropriate types
-            df['timestamp_est'] = pd.to_datetime(df['timestamp_est'])
-            df['timestamp_ms'] = df['timestamp_ms'].astype('int64')
-            
-            # Append to existing parquet file or create new one
-            if os.path.exists(self.trade_parquet):
-                existing_df = pd.read_parquet(self.trade_parquet)
-                combined_df = pd.concat([existing_df, df], ignore_index=True)
-                combined_df.to_parquet(self.trade_parquet, compression='snappy', index=False)
-            else:
-                df.to_parquet(self.trade_parquet, compression='snappy', index=False)
-                
-            self.trades_written += len(batch_data)
-            self.logger.info(f"TRADE_BATCH_WRITTEN | Records: {len(batch_data)} | Total written: {self.trades_written}")
-            
-        except Exception as e:
-            self.logger.error(f"TRADE_BATCH_WRITE_ERROR | Error: {str(e)} | Batch size: {len(batch_data)}")
-        
+            with self.conn.cursor() as cur:
+                psycopg2.extras.execute_values(
+                    cur,
+                    """
+                    INSERT INTO kalshi_trades (timestamp_ms, ticker, yes_price, count, taker_side, trade_value)
+                    VALUES %s
+                    ON CONFLICT (timestamp_ms, ticker, yes_price, count, taker_side) DO NOTHING
+                    """,
+                    batch_data,
+                    page_size=len(batch_data)
+                )
+                self.conn.commit()
+                self.trades_written += len(batch_data)
+                self.logger.info(f"DB_TRADE_BATCH_WRITTEN | Records: {len(batch_data)} | Total written: {self.trades_written}")
+        except (Exception, psycopg2.Error) as e:
+            self.logger.error(f"DB_TRADE_WRITE_ERROR | Error: {str(e)} | Batch size: {len(batch_data)}")
+            # Attempt to rollback the faulty transaction
+            if self.conn:
+                self.conn.rollback()
+
     def get_current_top_of_book(self, ticker):
         """Get current top of book with defaults for empty sides"""
         yes_book = self.orderbooks[ticker]['yes']
@@ -208,23 +244,15 @@ class KalshiDataCollector:
         return time_since_last_update > self.orderbook_timeout
         
     def add_orderbook_to_batch(self, ticker, receipt_timestamp_ms, current_tob):
-        """Add orderbook data to batch for Parquet writing"""
-        timestamp_est = self.timestamp_to_est(receipt_timestamp_ms)
-        
-        # Calculate derived metrics
-        spread = current_tob['ask'] - current_tob['bid']
-        mid_price = (current_tob['bid'] + current_tob['ask']) / 2
-        
+        """Add orderbook data to batch for DB writing"""
+        # The row format must match the database table schema
         row = [
-            timestamp_est,
             int(receipt_timestamp_ms),
             ticker,
             current_tob['bid'],
             current_tob['bid_qty'],
             current_tob['ask'],
-            current_tob['ask_qty'],
-            spread,
-            mid_price
+            current_tob['ask_qty']
         ]
         
         self.total_orderbook_updates += 1
@@ -239,37 +267,24 @@ class KalshiDataCollector:
                 batch_to_write = self.orderbook_batch.copy()
                 self.orderbook_batch.clear()
                 
-                # Create and track background thread
-                thread = threading.Thread(
-                    target=self.write_orderbook_batch_to_parquet,
-                    args=(batch_to_write,),
-                    daemon=True
-                )
-                thread.start()
-                self.background_threads.append(thread)
-                
-                # Clean up completed threads
-                self.background_threads = [t for t in self.background_threads if t.is_alive()]
+                # Write directly to the database
+                self.write_orderbook_batch_to_db(batch_to_write)
 
-        
+        mid_price = (current_tob['bid'] + current_tob['ask']) / 2
         debug_print(f"TOB CHANGE {ticker.split('-')[-1]}: {current_tob['bid']}/{current_tob['ask']} | Mid: {mid_price:.1f}")
         
     def add_trade_to_batch(self, ticker, receipt_timestamp_ms, trade_data):
-        """Add trade data to batch for Parquet writing"""
-        timestamp_est = self.timestamp_to_est(receipt_timestamp_ms)
-        
+        """Add trade data to batch for DB writing"""
         yes_price = trade_data.get('yes_price', 0)
-        no_price = 100 - yes_price if yes_price > 0 else 0
         count = trade_data.get('count', 0)
         taker_side = trade_data.get('taker_side', '')
         trade_value = yes_price * count  # Value in cents
         
+        # Row format must match the database table schema
         row = [
-            timestamp_est,
             int(receipt_timestamp_ms),
             ticker,
             yes_price,
-            no_price,
             count,
             taker_side,
             trade_value
@@ -285,12 +300,8 @@ class KalshiDataCollector:
                 batch_to_write = self.trade_batch.copy()
                 self.trade_batch.clear()
                 
-                # Write in background thread
-                threading.Thread(
-                    target=self.write_trade_batch_to_parquet,
-                    args=(batch_to_write,),
-                    daemon=True
-                ).start()
+                # Write directly to the database
+                self.write_trade_batch_to_db(batch_to_write)
         
         debug_print(f"TRADE {ticker.split('-')[-1]}: {yes_price} x {count} ({taker_side})")
 
@@ -360,14 +371,14 @@ class KalshiDataCollector:
             with self.orderbook_batch_lock:
                 if self.orderbook_batch:
                     self.logger.info(f"FLUSH_ORDERBOOK | Writing {len(self.orderbook_batch)} pending records")
-                    self.write_orderbook_batch_to_parquet(self.orderbook_batch)
+                    self.write_orderbook_batch_to_db(self.orderbook_batch)
                     self.orderbook_batch.clear()
                     
             # Write trade batch synchronously  
             with self.trade_batch_lock:
                 if self.trade_batch:
                     self.logger.info(f"FLUSH_TRADES | Writing {len(self.trade_batch)} pending records")
-                    self.write_trade_batch_to_parquet(self.trade_batch)
+                    self.write_trade_batch_to_db(self.trade_batch)
                     self.trade_batch.clear()
             
             # Now wait for any previously spawned background threads
@@ -434,6 +445,11 @@ def cleanup_and_exit():
             collector.logger.info("SHUTDOWN_START | Beginning cleanup process")
             collector.flush_remaining_batches()
             
+            # Close database connection
+            if collector.conn:
+                collector.conn.close()
+                collector.logger.info("DATABASE_CONNECTION_CLOSED | Connection closed successfully.")
+
             # Wait for background threads
             if hasattr(collector, 'cleanup_threads'):
                 collector.cleanup_threads()
@@ -707,9 +723,10 @@ def main():
         print(f"Tracking {len(markets)} election markets")
         for market in markets:
             print(market)
-        print(f"Parquet storage with top-of-book change detection")
+        print(f"Orderbook Storage: TimescaleDB (Top-of-Book)")
+        print(f"Trade Storage: TimescaleDB")
         print(f"Auto-restart if no orderbook updates for {collector.orderbook_timeout} seconds")
-        print("Detailed logging: logs/kalshi_data_collector.log")
+        print("Detailed logging: logs/data_logs_3.log")
         print("Press Ctrl+C to stop\n")
         
         collector.logger.info(f"MAIN_START | Markets: {len(markets)}")

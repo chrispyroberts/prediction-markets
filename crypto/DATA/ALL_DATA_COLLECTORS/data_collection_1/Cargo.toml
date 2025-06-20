@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 # Async runtime
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 
 # WebSocket client
 tokio-tungstenite = { version = "0.20", features = ["native-tls"] }
@@ -54,3 +54,6 @@ colored = "2.0"
 
 # URL parsing
 url = "2.5"
+
+# Added from the code block
+tokio-postgres = "0.7"

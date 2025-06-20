@@ -8,6 +8,24 @@ import pandas as pd
 import pytz
 import logging
 import json
+import atexit # Shutdown handler
+import signal
+import sys
+import psycopg2
+import psycopg2.extras
+
+# === Configuration ===
+DEBUG = False
+def debug_print(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)
+
+# === Database Configuration ===
+DB_HOST = "localhost"
+DB_PORT = "5432"
+DB_NAME = "chris_db"
+DB_USER = "postgres"
+DB_PASS = "password" # The password you set when starting the Docker container
 
 class BRTIDataCollector:
     def __init__(self, disable_terminal_output=False):
@@ -16,10 +34,10 @@ class BRTIDataCollector:
         # Terminal output toggle
         self.disable_terminal_output = disable_terminal_output
         
-        # Parquet storage setup
+        # Database batching setup
         self.price_batch = []
         self.price_batch_lock = threading.Lock()
-        self.price_batch_size = 30  # Write every 100 price updates
+        self.price_batch_size = 30  # Write every 30 price updates
         
         # Shadow ban detection
         self.last_price_update_time = None
@@ -32,12 +50,8 @@ class BRTIDataCollector:
         self.session_price_updates = 0
         self.total_sessions = 0
         
-        # Ensure data directory exists
-        os.makedirs(r'C:\Users\chris\OneDrive\Desktop\Programming\Trading\prediction markets\crypto\DATA\ALL_DATA_COLLECTORS\data', exist_ok=True)
-        os.makedirs(r'C:\Users\chris\OneDrive\Desktop\Programming\Trading\prediction markets\crypto\DATA\ALL_DATA_COLLECTORS\logs', exist_ok=True)
-        
-        # Parquet file path
-        self.price_parquet = r'C:\Users\chris\OneDrive\Desktop\Programming\Trading\prediction markets\crypto\DATA\ALL_DATA_COLLECTORS\data\brti_price_data.parquet'
+        # Ensure log directory exists
+        os.makedirs(r'C:\Users\chris\OneDrive\Desktop\Programming\Trading\prediction markets\crypto\DATA\data_collection_2\logs', exist_ok=True)
         
         # EST timezone
         self.est_tz = pytz.timezone('US/Eastern')
@@ -45,13 +59,78 @@ class BRTIDataCollector:
         # Setup logging
         self.setup_logging()
         
+        # Establish database connection
+        self.conn = self.connect_to_db()
+        
         if not self.disable_terminal_output:
-            print(f"BRTI Parquet file configured:")
-            print(f"   - {self.price_parquet}")
+            print(f"BRTI Database configuration:")
+            print(f"   - Host: {DB_HOST}, DB: {DB_NAME}")
             print(f"   - Price batch size: {self.price_batch_size}")
             print(f"   - Shadow ban timeout: {self.shadow_ban_timeout}s")
             print(f"   - Retry wait time: {self.retry_wait_time}s")
-            print(f"   - Log file: logs/brti_backoff_analysis.log")
+            print(f"   - Log file: logs/data_logs_2.log")
+        
+        # Register exit handlers for ANY exit scenario
+        self.register_exit_handlers()
+        
+    def register_exit_handlers(self):
+        """Register comprehensive exit handlers to ensure data flushing on ANY exit"""
+        # Register atexit handler (runs on normal exit)
+        atexit.register(self.cleanup_and_exit)
+        
+        # Register signal handlers for graceful shutdown
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        if hasattr(signal, 'SIGHUP'):
+            signal.signal(signal.SIGHUP, self.signal_handler)
+        
+        self.logger.info("EXIT_HANDLERS_REGISTERED | atexit, SIGINT, SIGTERM, SIGHUP handlers installed")
+        
+    def signal_handler(self, signum, frame):
+        """Handle interrupt signals (Ctrl+C, SIGTERM, etc.)"""
+        signal_name = {
+            signal.SIGINT: "SIGINT",
+            signal.SIGTERM: "SIGTERM",
+            signal.SIGHUP: "SIGHUP" if hasattr(signal, 'SIGHUP') else "UNKNOWN"
+        }.get(signum, f"Signal {signum}")
+        
+        self.logger.info(f"SIGNAL_RECEIVED | {signal_name} - initiating graceful shutdown")
+        self.cleanup_and_exit()
+        sys.exit(0)
+        
+    def cleanup_and_exit(self):
+        """Comprehensive cleanup function that runs on ANY exit"""
+        try:
+            self.logger.info("CLEANUP_STARTED | Flushing all remaining data...")
+            
+            # Flush any remaining batches
+            self.flush_remaining_batches()
+            
+            # Close the database connection
+            if self.conn:
+                self.conn.close()
+                self.logger.info("DATABASE_CONNECTION_CLOSED | Connection closed successfully.")
+            
+            # Log final stats
+            stats = self.get_stats()
+            self.logger.info(f"SHUTDOWN_STATS | {stats}")
+            
+            self.logger.info("CLEANUP_COMPLETED | All data flushed, exiting cleanly")
+            
+        except Exception as e:
+            self.logger.error(f"CLEANUP_ERROR | Error during cleanup: {str(e)}")
+            if not self.disable_terminal_output:
+                print(f"ERROR: {e}")
+        
+    def get_stats(self):
+        """Get current collection statistics"""
+        return {
+            'total_sessions': self.total_sessions,
+            'current_session_updates': self.session_price_updates,
+            'pending_batch_size': len(self.price_batch),
+            'last_price': self.latest_price.get('value'),
+            'last_price_time': self.latest_price.get('timestamp')
+        }
         
     def print_if_enabled(self, *args, **kwargs):
         """Print only if terminal output is enabled"""
@@ -65,7 +144,7 @@ class BRTIDataCollector:
         self.logger.setLevel(logging.INFO)
         
         # Create file handler
-        log_file = r'C:\Users\chris\OneDrive\Desktop\Programming\Trading\prediction markets\crypto\DATA\ALL_DATA_COLLECTORS\logs\brti_backoff_analysis.log'
+        log_file = r'C:\Users\chris\OneDrive\Desktop\Programming\Trading\prediction markets\crypto\DATA\data_collection_2\logs\data_logs_2.log'
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.INFO)
         
@@ -87,6 +166,23 @@ class BRTIDataCollector:
         self.logger.info("="*80)
         self.logger.info("BRTI DATA COLLECTOR STARTED")
         self.logger.info("="*80)
+        
+    def connect_to_db(self):
+        """Establishes and returns a connection to the PostgreSQL database."""
+        try:
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                port=DB_PORT,
+                dbname=DB_NAME,
+                user=DB_USER,
+                password=DB_PASS
+            )
+            self.logger.info(f"DATABASE_CONNECTED | Successfully connected to '{DB_NAME}' on {DB_HOST}:{DB_PORT}")
+            return conn
+        except psycopg2.OperationalError as e:
+            self.logger.error(f"DATABASE_CONNECTION_ERROR | Could not connect to database: {e}")
+            self.print_if_enabled(f"FATAL: Could not connect to the database. Please check credentials and that the Docker container is running. Error: {e}")
+            sys.exit(1) # Exit if we can't connect at startup
         
     def log_session_start(self):
         """Log the start of a new session"""
@@ -202,46 +298,47 @@ class BRTIDataCollector:
         est_time = dt.astimezone(self.est_tz)
         return est_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         
-    def write_price_batch_to_parquet(self, batch_data):
-        """Write price batch to Parquet file"""
+    def write_price_batch_to_db(self, batch_data):
+        """Write price batch to the TimescaleDB database."""
         if not batch_data:
             return
-            
-        df = pd.DataFrame(batch_data, columns=[
-            'timestamp_est', 'timestamp_ms', 'brti_price', 'simple_average'
-        ])
-        
-        # Convert timestamp columns to appropriate types
-        df['timestamp_est'] = pd.to_datetime(df['timestamp_est'])
-        df['timestamp_ms'] = df['timestamp_ms'].astype('int64')
-        
-        # Append to existing parquet file or create new one
-        if os.path.exists(self.price_parquet):
-            # Read existing data and append
-            existing_df = pd.read_parquet(self.price_parquet)
-            combined_df = pd.concat([existing_df, df], ignore_index=True)
-            combined_df.to_parquet(self.price_parquet, compression='snappy', index=False)
-        else:
-            # Create new file
-            df.to_parquet(self.price_parquet, compression='snappy', index=False)
-            
-        self.print_if_enabled(f"💾 BRTI BATCH: Wrote {len(batch_data)} records to Parquet")
-        
+
+        if not self.conn:
+            self.logger.error("DB_WRITE_ERROR | No database connection available.")
+            return
+
+        try:
+            with self.conn.cursor() as cur:
+                # Use execute_values for efficient bulk insertion
+                psycopg2.extras.execute_values(
+                    cur,
+                    "INSERT INTO brti_prices (timestamp_ms, brti_price, simple_average) VALUES %s",
+                    batch_data,
+                    page_size=len(batch_data)
+                )
+                self.conn.commit()
+                self.print_if_enabled(f"💾 BRTI BATCH: Wrote {len(batch_data)} records to Database")
+                self.logger.info(f"DB_BATCH_WRITE_SUCCESS | Wrote {len(batch_data)} records to brti_prices")
+        except (Exception, psycopg2.Error) as e:
+            self.logger.error(f"DB_WRITE_ERROR | Failed to write batch to database: {e}")
+            self.print_if_enabled(f"ERROR: Failed to write to database: {e}")
+            # Attempt to rollback the faulty transaction
+            self.conn.rollback()
+
     def add_price_to_batch(self, price, receipt_timestamp_ms):
-        """Add price data to batch for Parquet writing"""
+        """Add price data to batch for DB writing"""
         # Update simple average
         self.latest_price['simple_average'].append(price)
         if len(self.latest_price['simple_average']) > 60:
             self.latest_price['simple_average'].pop(0)
             
         simple_avg = np.mean(self.latest_price['simple_average']) if self.latest_price['simple_average'] else price
-        timestamp_est = self.timestamp_to_est(receipt_timestamp_ms)
         
+        # The row format must match the database table schema
         row = [
-            timestamp_est,
             int(receipt_timestamp_ms),
-            price,
-            simple_avg
+            float(price),
+            float(simple_avg)
         ]
         
         with self.price_batch_lock:
@@ -252,13 +349,10 @@ class BRTIDataCollector:
                 batch_to_write = self.price_batch.copy()
                 self.price_batch.clear()
                 
-                # Write in background thread to avoid blocking
-                threading.Thread(
-                    target=self.write_price_batch_to_parquet,
-                    args=(batch_to_write,),
-                    daemon=True
-                ).start()
+                # Write directly, no need for a new thread for this
+                self.write_price_batch_to_db(batch_to_write)
         
+        timestamp_est = self.timestamp_to_est(receipt_timestamp_ms)
         self.print_if_enabled(f"💰 BRTI QUEUED [{timestamp_est}] Price: ${price:,.2f} | Simple Avg: ${simple_avg:,.2f}")
         
     def is_shadow_banned(self):
@@ -415,7 +509,7 @@ class BRTIDataCollector:
                                 self.latest_price['value'] = price
                                 self.latest_price['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                                 
-                                # Add to batch for Parquet storage
+                                # Add to batch for DB writing
                                 self.add_price_to_batch(price, receipt_timestamp_ms)
                                 
                                 # Log price update for session tracking
@@ -471,7 +565,7 @@ class BRTIDataCollector:
         
         with self.price_batch_lock:
             if self.price_batch:
-                self.write_price_batch_to_parquet(self.price_batch)
+                self.write_price_batch_to_db(self.price_batch)
                 self.price_batch.clear()
                 
         self.print_if_enabled("All batches flushed")
@@ -481,9 +575,10 @@ class BRTIDataCollector:
         """Main run loop"""
         try:
             self.poll_brti()
-        except KeyboardInterrupt:
-            self.print_if_enabled("\n👋 Shutting down...")
-            self.flush_remaining_batches()
+        except Exception as e:
+            self.logger.error(f"RUN_ERROR | Unexpected error in main loop: {str(e)}")
+            self.print_if_enabled(f"Unexpected error: {e}")
+            # cleanup_and_exit will be called by atexit handler
 
 def main():
     # Check if running in unified mode (disable terminal output)
@@ -492,23 +587,25 @@ def main():
     collector = BRTIDataCollector(disable_terminal_output=disable_terminal_output)
     try:
         collector.run()
-    except KeyboardInterrupt:
-        collector.print_if_enabled("\nFinal shutdown...")
-        collector.flush_remaining_batches()
+    except Exception as e:
+        collector.logger.error(f"MAIN_ERROR | Error in main: {str(e)}")
+        collector.print_if_enabled(f"Main error: {e}")
+        # cleanup_and_exit will be called by atexit handler
 
 if __name__ == "__main__":
     if not os.environ.get('BRTI_DISABLE_TERMINAL', 'false').lower() == 'true':
         print("Starting BRTI Data Collector...")
         print("Bitcoin Real Time Index (BRTI)")
-        print("Storage: Parquet files with Snappy compression")
+        print("Storage: TimescaleDB")
         print("Timestamps at data receipt")
         print("Batched writes for efficiency")
         print("Timezone: EST")
         print("Shadow ban detection enabled")
-        print("Detailed logging enabled: logs/brti_backoff_analysis.log")
+        print("Detailed logging enabled: logs/data_logs_2.log")
         print("Press Ctrl+C to stop\n")
     
     try:
         main()
-    except KeyboardInterrupt:
-        print("\nFinal shutdown...")
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        # cleanup_and_exit will be called by atexit handler

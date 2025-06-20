@@ -1,0 +1,6 @@
+TO CHECK HOW MANY ROWS IN DATABASE:
+docker exec -it timescaledb psql -U postgres -d chris_db -c "SELECT 'binance_orderbook_features' AS table_name, COUNT(*) FROM binance_orderbook_features UNION ALL SELECT 'binance_trades' AS table_name, COUNT(*) FROM binance_trades UNION ALL SELECT 'brti_prices' as table_name, COUNT(*) FROM brti_prices UNION ALL SELECT 'kalshi_orderbooks' as table_name, COUNT(*) FROM kalshi_orderbooks UNION ALL SELECT 'kalshi_trades' as table_name, COUNT(*) FROM kalshi_trades;"
+
+
+TO CHECK HOW MUCH SPACE IT TAKES UP:
+docker exec -it timescaledb psql -U postgres -d chris_db -c "\dt+"

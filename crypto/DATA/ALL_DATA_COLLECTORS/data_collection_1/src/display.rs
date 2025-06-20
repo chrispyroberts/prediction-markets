@@ -124,29 +124,23 @@ impl DisplayManager {
         if self.mode != DisplayMode::Compact {
             return;
         }
-        
         if let Some(display) = &self.display {
             display.clear_screen();
         }
-        
         let current_time = Utc::now().format("%H:%M:%S").to_string();
         let uptime = self.start_time.elapsed().as_secs();
-        
         let mid_price = (features.ask_l1_price + features.bid_l1_price) / 2.0;
         let spread_abs = features.spread_l1;
-        
-        info!("🚀 BTC PERPETUAL - COMPACT LIVE VIEW WITH FEATURES");
-        info!("{}", "=".repeat(80));
-        info!("🕐 {} | Updates: {} | Uptime: {}s", current_time, self.update_count, uptime);
-        info!("💰 Mid: ${:.2} | Spread: ${:.2}", mid_price, spread_abs);
-        info!("Batch Status: {}/{} orderbook, {}/{} trades", orderbook_batch_count, orderbook_batch_size, trade_batch_count, trade_batch_size);
-        info!("{}", "=".repeat(80));
-        // L1, L5, L10, L20 Data Table
-        info!("📊 ORDER BOOK LEVELS - CUMULATIVE QUANTITIES & VWAP");
-        info!("{}", "-".repeat(80));
-        info!("{:<8} {:<12} {:<12} {:<12} {:<12} {:<10}", 
-              "Level", "Bid Qty", "Bid VWAP", "Ask Qty", "Ask VWAP", "Spread");
-        info!("{}", "-".repeat(80));
+        println!("🚀 BTC PERPETUAL - COMPACT LIVE VIEW WITH FEATURES");
+        println!("{}", "=".repeat(80));
+        println!("🕐 {} | Updates: {} | Uptime: {}s", current_time, self.update_count, uptime);
+        println!("💰 Mid: ${:.2} | Spread: ${:.2}", mid_price, spread_abs);
+        println!("Batch Status: {}/{} orderbook, {}/{} trades", orderbook_batch_count, orderbook_batch_size, trade_batch_count, trade_batch_size);
+        println!("{}", "=".repeat(80));
+        println!("📊 ORDER BOOK LEVELS - CUMULATIVE QUANTITIES & VWAP");
+        println!("{}", "-".repeat(80));
+        println!("{:<8} {:<12} {:<12} {:<12} {:<12} {:<10}", "Level", "Bid Qty", "Bid VWAP", "Ask Qty", "Ask VWAP", "Spread");
+        println!("{}", "-".repeat(80));
         let levels = [(1, features.bid_l1_cumulative_qty, features.bid_l1_weighted_price, 
                        features.ask_l1_cumulative_qty, features.ask_l1_weighted_price, features.spread_l1),
                       (5, features.bid_l5_cumulative_qty, features.bid_l5_weighted_price,
@@ -156,72 +150,67 @@ impl DisplayManager {
                       (20, features.bid_l20_cumulative_qty, features.bid_l20_weighted_price,
                        features.ask_l20_cumulative_qty, features.ask_l20_weighted_price, features.spread_l20)];
         for (level, bid_qty, bid_vwap, ask_qty, ask_vwap, spread) in levels {
-            info!("L{:<7} {:<12.3} ${:<11.2} {:<12.3} ${:<11.2} ${:<9.2}", 
+            println!("L{:<7} {:<12.3} ${:<11.2} {:<12.3} ${:<11.2} ${:<9.2}", 
                   level, bid_qty, bid_vwap, ask_qty, ask_vwap, spread);
         }
-        info!("{}", "-".repeat(80));
-        // Best prices for each level
-        info!("📈 BEST PRICES BY LEVEL");
-        info!("{}", "-".repeat(80));
-        info!("{:<8} {:<12} {:<12} {:<12} {:<12}", 
+        println!("{}", "-".repeat(80));
+        println!("📈 BEST PRICES BY LEVEL");
+        println!("{}", "-".repeat(80));
+        println!("{:<8} {:<12} {:<12} {:<12} {:<12}", 
               "Level", "Best Bid", "Best Ask", "Mid Price", "Spread");
-        info!("{}", "-".repeat(80));
+        println!("{}", "-".repeat(80));
         let best_prices = [(1, features.bid_l1_price, features.ask_l1_price, features.spread_l1),
                            (5, features.bid_l5_price, features.ask_l5_price, features.spread_l5),
                            (10, features.bid_l10_price, features.ask_l10_price, features.spread_l10),
                            (20, features.bid_l20_price, features.ask_l20_price, features.spread_l20)];
         for (level, best_bid, best_ask, spread) in best_prices {
             let mid = (best_ask + best_bid) / 2.0;
-            info!("L{:<7} ${:<11.2} ${:<11.2} ${:<11.2} {:.1}", 
+            println!("L{:<7} ${:<11.2} ${:<11.2} ${:<11.2} {:.1}", 
                   level, best_bid, best_ask, mid, spread);
         }
-        info!("{}", "-".repeat(80));
-        // Volume analysis
-        info!("📊 VOLUME ANALYSIS");
-        info!("{}", "-".repeat(40));
+        println!("{}", "-".repeat(80));
+        println!("📊 VOLUME ANALYSIS");
+        println!("{}", "-".repeat(40));
         let total_bid_l1 = features.bid_l1_cumulative_qty;
         let total_bid_l20 = features.bid_l20_cumulative_qty;
         let total_ask_l1 = features.ask_l1_cumulative_qty;
         let total_ask_l20 = features.ask_l20_cumulative_qty;
         let bid_depth_ratio = if total_bid_l1 > 0.0 { total_bid_l20 / total_bid_l1 } else { 0.0 };
         let ask_depth_ratio = if total_ask_l1 > 0.0 { total_ask_l20 / total_ask_l1 } else { 0.0 };
-        info!("Bid L1 vs L20: {:.3} → {:.3} BTC (ratio: {:.1}x)", 
+        println!("Bid L1 vs L20: {:.3} → {:.3} BTC (ratio: {:.1}x)", 
               total_bid_l1, total_bid_l20, bid_depth_ratio);
-        info!("Ask L1 vs L20: {:.3} → {:.3} BTC (ratio: {:.1}x)", 
+        println!("Ask L1 vs L20: {:.3} → {:.3} BTC (ratio: {:.1}x)", 
               total_ask_l1, total_ask_l20, ask_depth_ratio);
-        // Order book imbalance
         let l1_imbalance = total_bid_l1 - total_ask_l1;
         let l20_imbalance = total_bid_l20 - total_ask_l20;
         let l1_emoji = if l1_imbalance > 0.0 { "🟢" } else if l1_imbalance < 0.0 { "🔴" } else { "⚪" };
         let l20_emoji = if l20_imbalance > 0.0 { "🟢" } else if l20_imbalance < 0.0 { "🔴" } else { "⚪" };
-        info!("L1 Imbalance: {} {:+.3} BTC", l1_emoji, l1_imbalance);
-        info!("L20 Imbalance: {} {:+.3} BTC", l20_emoji, l20_imbalance);
-        // Recent trade info
-        info!("💰 RECENT TRADE");
-        info!("{}", "-".repeat(25));
+        println!("L1 Imbalance: {} {:+.3} BTC", l1_emoji, l1_imbalance);
+        println!("L20 Imbalance: {} {:+.3} BTC", l20_emoji, l20_imbalance);
+        println!("💰 RECENT TRADE");
+        println!("{}", "-".repeat(25));
         if let Some(trade) = &self.recent_trade {
             let trade_type = if trade.is_buyer_maker { "SELL" } else { "BUY" };
             let trade_emoji = if trade.is_buyer_maker { "🔴" } else { "🟢" };
-            info!("{} {}: {:.3} BTC @ ${:.2}", 
+            println!("{} {}: {:.3} BTC @ ${:.2}", 
                   trade_emoji, trade_type, trade.quantity, trade.price);
         } else {
-            info!("No trades yet");
+            println!("No trades yet");
         }
-        // Last large aggregated trade period info
-        info!("🚨 LAST LARGE AGGREGATED PERIOD (>{} BTC total)", self.large_trade_threshold);
-        info!("{}", "-".repeat(45));
+        println!("🚨 LAST LARGE AGGREGATED PERIOD (>{} BTC total)", self.large_trade_threshold);
+        println!("{}", "-".repeat(45));
         if let Some(aggregated_trade) = last_large_aggregated_trade {
             let imbalance = aggregated_trade.buy_volume - aggregated_trade.sell_volume;
             let imbalance_emoji = if imbalance > 0.0 { "🟢" } else if imbalance < 0.0 { "🔴" } else { "⚪" };
-            info!("{} Total: {:.3} BTC | Buy: {:.3} | Sell: {:.3} | Trades: {}", 
+            println!("{} Total: {:.3} BTC | Buy: {:.3} | Sell: {:.3} | Trades: {}", 
                   imbalance_emoji, aggregated_trade.total_volume, aggregated_trade.buy_volume, 
                   aggregated_trade.sell_volume, aggregated_trade.total_trade_count);
-            info!("   VWAP Buy: ${:.2} | VWAP Sell: ${:.2} | Time: {}", 
+            println!("   VWAP Buy: ${:.2} | VWAP Sell: ${:.2} | Time: {}", 
                   aggregated_trade.vwap_buy_price, aggregated_trade.vwap_sell_price, aggregated_trade.timestamp_est);
         } else {
-            info!("No large aggregated periods (>{} BTC total) yet", self.large_trade_threshold);
+            println!("No large aggregated periods (>{} BTC total) yet", self.large_trade_threshold);
         }
-        info!("{}", "=".repeat(80));
+        println!("{}", "=".repeat(80));
     }
     
     pub fn get_update_count(&self) -> u64 {

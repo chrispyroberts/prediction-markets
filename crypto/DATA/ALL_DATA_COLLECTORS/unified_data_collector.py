@@ -15,6 +15,12 @@ import logging
 from datetime import datetime
 import shutil
 from pathlib import Path
+import pandas as pd
+
+# Import Windows-specific signal constants
+if os.name == 'nt':
+    import win32api
+    import win32con
 
 class UnifiedDataCollector:
     def __init__(self):
@@ -114,6 +120,36 @@ class UnifiedDataCollector:
                 stderr_thread = threading.Thread(target=read_output, args=(process.stderr, "STDERR"), daemon=True)
                 stdout_thread.start()
                 stderr_thread.start()
+            elif name == "Binance":
+                # Set environment variable to disable terminal output for Binance Rust collector
+                env = os.environ.copy()
+                env['BINANCE_DISABLE_TERMINAL'] = 'true'
+                
+                # Start the process with output capture for Binance
+                process = subprocess.Popen(
+                    command,
+                    cwd=cwd or self.base_dir,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                    universal_newlines=True
+                )
+                
+                # Start background threads to read output and prevent hanging
+                def read_output(stream, prefix):
+                    try:
+                        for line in iter(stream.readline, ''):
+                            if line.strip():
+                                self.logger.info(f"{name} {prefix}: {line.strip()}")
+                    except Exception as e:
+                        self.logger.error(f"Error reading {name} {prefix}: {e}")
+                
+                stdout_thread = threading.Thread(target=read_output, args=(process.stdout, "STDOUT"), daemon=True)
+                stderr_thread = threading.Thread(target=read_output, args=(process.stderr, "STDERR"), daemon=True)
+                stdout_thread.start()
+                stderr_thread.start()
             else:
                 # Start the process with output capture for other collectors
                 process = subprocess.Popen(
@@ -166,15 +202,26 @@ class UnifiedDataCollector:
         try:
             self.logger.info(f"Stopping {name} collector (PID: {process.pid})...")
             
-            # Send SIGTERM for graceful shutdown
-            process.terminate()
+            # For Binance collector on Windows, send Ctrl+C instead of SIGTERM
+            if name == "Binance" and os.name == 'nt':  # Windows
+                self.logger.info(f"Sending Ctrl+C to {name} collector...")
+                try:
+                    process.send_signal(signal.CTRL_C_EVENT)
+                except AttributeError:
+                    # Fallback to terminate if CTRL_C_EVENT not available
+                    self.logger.info(f"CTRL_C_EVENT not available, using terminate for {name} collector...")
+                    process.terminate()
+            else:
+                # Send SIGTERM for graceful shutdown
+                process.terminate()
             
-            # Wait for graceful shutdown
+            # Wait for graceful shutdown - increased timeout for Rust collector
+            timeout = 30 if name == "Binance" else 10  # Give Rust collector more time to flush
             try:
-                process.wait(timeout=10)
+                process.wait(timeout=timeout)
                 self.logger.info(f"{name} collector stopped gracefully")
             except subprocess.TimeoutExpired:
-                self.logger.warning(f"{name} collector didn't stop gracefully, force killing...")
+                self.logger.warning(f"{name} collector didn't stop gracefully after {timeout}s, force killing...")
                 process.kill()
                 process.wait()
                 
@@ -234,22 +281,50 @@ class UnifiedDataCollector:
             if not parquet_files:
                 self.logger.warning("No parquet files found to backup")
                 return
-                
-            # Copy files
+            
+            successful_backups = 0
+            failed_backups = 0
+            
+            # Copy files with individual error handling
             for file_path in parquet_files:
-                backup_file = backup_path / file_path.name
-                shutil.copy2(file_path, backup_file)
-                size_mb = file_path.stat().st_size / (1024 * 1024)
-                self.logger.info(f"Backed up: {file_path.name} ({size_mb:.2f} MB)")
+                try:
+                    # Verify file is not corrupted before backing up
+                    if self.verify_parquet_file(file_path):
+                        backup_file = backup_path / file_path.name
+                        shutil.copy2(file_path, backup_file)
+                        size_mb = file_path.stat().st_size / (1024 * 1024)
+                        self.logger.info(f"Backed up: {file_path.name} ({size_mb:.2f} MB)")
+                        successful_backups += 1
+                    else:
+                        self.logger.warning(f"Skipping corrupted file: {file_path.name}")
+                        failed_backups += 1
+                        
+                except PermissionError as e:
+                    self.logger.error(f"Permission error backing up {file_path.name}: {e}")
+                    failed_backups += 1
+                except Exception as e:
+                    self.logger.error(f"Error backing up {file_path.name}: {e}")
+                    failed_backups += 1
                 
             self.last_backup = time.time()
-            self.logger.info(f"Backup completed: {len(parquet_files)} files")
+            self.logger.info(f"Backup completed: {successful_backups} successful, {failed_backups} failed")
             
             # Clean up old backups (keep last 10)
             self.cleanup_old_backups()
             
         except Exception as e:
             self.logger.error(f"Error creating backup: {e}")
+            
+    def verify_parquet_file(self, file_path):
+        """Verify that a parquet file is not corrupted"""
+        try:
+            # Try to read the parquet file to check for corruption
+            df = pd.read_parquet(file_path)
+            # If we can read it, it's probably not corrupted
+            return True
+        except Exception as e:
+            self.logger.warning(f"Parquet file {file_path.name} appears corrupted: {e}")
+            return False
             
     def cleanup_old_backups(self):
         """Keep only the last 10 backups"""
@@ -271,6 +346,37 @@ class UnifiedDataCollector:
     def should_create_backup(self):
         """Check if it's time for a backup"""
         return time.time() - self.last_backup >= self.backup_interval
+        
+    def verify_files_unlocked(self):
+        """Verify that parquet files are not locked and can be accessed"""
+        try:
+            parquet_files = list(self.data_dir.glob("*.parquet"))
+            if not parquet_files:
+                self.logger.info("No parquet files found to verify")
+                return True
+                
+            self.logger.info(f"Verifying {len(parquet_files)} parquet files are unlocked...")
+            
+            for file_path in parquet_files:
+                try:
+                    # Try to open the file for reading to check if it's locked
+                    with open(file_path, 'rb') as f:
+                        # Read first few bytes to ensure file is accessible
+                        f.read(1024)
+                    self.logger.info(f"File {file_path.name} is unlocked")
+                except PermissionError:
+                    self.logger.warning(f"File {file_path.name} is still locked")
+                    return False
+                except Exception as e:
+                    self.logger.warning(f"Error checking file {file_path.name}: {e}")
+                    return False
+            
+            self.logger.info("All parquet files are unlocked and ready for backup")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error in file verification: {e}")
+            return False
         
     def run(self):
         """Main run loop"""
@@ -319,19 +425,28 @@ class UnifiedDataCollector:
                         # Stop all collectors for backup
                         self.stop_all_collectors()
                         
-                        # Wait for file handles to be released
-                        time.sleep(5)
+                        # Wait longer for file handles to be released
+                        self.logger.info("Waiting for file handles to be released...")
+                        time.sleep(15)  # Increased from 5 to 15 seconds
                         
-                        # Create backup
-                        self.create_backup()
-                        
-                        # Restart all collectors
-                        self.logger.info("Restarting all collectors after backup...")
-                        self.start_collector("BRTI", [sys.executable, "brti_collector/brti_data_collecting.py"], cwd=self.base_dir)
-                        self.start_collector("Kalshi", [sys.executable, "kalshi_collector/kalshi_data_wrapper.py"], cwd=self.base_dir)
-                        self.start_collector("Binance", ["./binance_collector/target/release/binance_rust.exe"], cwd=self.base_dir)
-                        
-                        self.logger.info("All collectors restarted after backup")
+                        # Additional verification that files are not locked
+                        if self.verify_files_unlocked():
+                            # Create backup
+                            self.create_backup()
+                            
+                            # Restart all collectors
+                            self.logger.info("Restarting all collectors after backup...")
+                            self.start_collector("BRTI", [sys.executable, "brti_collector/brti_data_collecting.py"], cwd=self.base_dir)
+                            self.start_collector("Kalshi", [sys.executable, "kalshi_collector/kalshi_data_wrapper.py"], cwd=self.base_dir)
+                            self.start_collector("Binance", ["./binance_collector/target/release/binance_rust.exe"], cwd=self.base_dir)
+                            
+                            self.logger.info("All collectors restarted after backup")
+                        else:
+                            self.logger.warning("Files still locked, skipping backup and restarting collectors...")
+                            # Restart collectors even if backup failed
+                            self.start_collector("BRTI", [sys.executable, "brti_collector/brti_data_collecting.py"], cwd=self.base_dir)
+                            self.start_collector("Kalshi", [sys.executable, "kalshi_collector/kalshi_data_wrapper.py"], cwd=self.base_dir)
+                            self.start_collector("Binance", ["./binance_collector/target/release/binance_rust.exe"], cwd=self.base_dir)
                     
                     # Sleep before next check
                     time.sleep(60)
