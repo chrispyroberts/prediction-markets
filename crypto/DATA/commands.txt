@@ -12,5 +12,8 @@ docker exec -it timescaledb bash -c "echo '0 2 * * * /tmp/backup_script.sh >> /v
 # Start the TimescaleDB container
 docker start timescaledb
 
+# Stop the TimescaleDB container
+docker stop timescaledb
+
 # Check if database is accessible
 docker exec -it timescaledb psql -U postgres -d chris_db -c "SELECT version();"

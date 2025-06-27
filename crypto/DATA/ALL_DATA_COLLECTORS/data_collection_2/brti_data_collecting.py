@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import threading
 import time
@@ -13,6 +13,24 @@ import signal
 import sys
 import psycopg2
 import psycopg2.extras
+import urllib.request
+import urllib.parse
+from zoneinfo import ZoneInfo
+
+# Increase recursion limit to handle deep function calls
+sys.setrecursionlimit(100000)  # Increase from default ~1000 to 10000
+
+# === WebSocket Imports ===
+import eventlet
+eventlet.monkey_patch()
+from flask import Flask, jsonify, request
+from flask_socketio import SocketIO
+from flask_cors import CORS
+
+# === WebSocket Setup ===
+app = Flask(__name__)
+CORS(app, supports_credentials=True)
+socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins='*')
 
 # === Configuration ===
 DEBUG = False
@@ -27,6 +45,7 @@ DB_NAME = "chris_db"
 DB_USER = "postgres"
 DB_PASS = "password" # The password you set when starting the Docker container
 
+
 class BRTIDataCollector:
     def __init__(self, disable_terminal_output=False):
         self.latest_price = {'value': None, 'timestamp': None, 'simple_average': []}
@@ -34,10 +53,16 @@ class BRTIDataCollector:
         # Terminal output toggle
         self.disable_terminal_output = disable_terminal_output
         
+        # WebSocket client tracking
+        self.active_clients = set()
+        
         # Database batching setup
         self.price_batch = []
         self.price_batch_lock = threading.Lock()
         self.price_batch_size = 30  # Write every 30 price updates
+        
+        # Binance option price cache
+        self.binance_option_cache = {'price': None, 'timestamp': None, 'cache_duration': 30}  # Cache for 30 seconds
         
         # Shadow ban detection
         self.last_price_update_time = None
@@ -73,6 +98,85 @@ class BRTIDataCollector:
         # Register exit handlers for ANY exit scenario
         self.register_exit_handlers()
         
+        # Setup WebSocket event handlers
+        self.setup_websocket_handlers()
+        
+    
+    def get_binance_option_mark_price(self, brti_price):
+        """Get Binance option mark price for near-the-money options expiring soon"""        
+        base_url = "https://eapi.binance.com/eapi/v1/mark"
+        
+        try:            
+            # Create request with custom headers
+            req = urllib.request.Request(
+                base_url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            )
+            
+            # Make the request
+            with urllib.request.urlopen(req, timeout=10) as response:
+                received_data = json.loads(response.read().decode('utf-8'))
+
+            nearest_expiry_ATM = []
+            expiry_string = None
+            est = ZoneInfo("America/New_York")
+            current_time = datetime.now(est)
+            
+            for option in received_data:
+                full_symbol = option['symbol']
+                symbol_parts = full_symbol.split('-')
+                
+                if len(symbol_parts) < 3:
+                    continue
+                    
+                symbol = symbol_parts[0]
+
+                if symbol != 'BTC':
+                    continue
+
+                expiration = symbol_parts[1]
+                strike = int(symbol_parts[2])
+                markIV = float(option['markIV'])
+
+                # Parse expiration date (format: YYMMDD)
+                if len(expiration) != 6:
+                    continue
+                    
+                year = int(expiration[:2]) + 2000
+                month = int(expiration[2:4])
+                day = int(expiration[4:6])
+
+                # Convert to a datetime object
+                expiration_date = datetime(year, month, day, 4, 0, 0, tzinfo=est)
+
+                # Calculate time delta
+                delta = expiration_date - current_time
+
+                if delta.total_seconds() <= 0:
+                    return None, None  # Already expired
+
+                hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                minutes, seconds = divmod(remainder, 60)
+
+                # Find all options expiring soon (within 1 day)
+                if expiration_date < current_time + timedelta(days=1):
+                    # Check they are near the money (within $1000 of BRTI price)
+                    if abs(strike - brti_price) < 600:
+                        nearest_expiry_ATM.append(markIV)
+                        expiry_string = f"{hours} hours {minutes} minutes {seconds} seconds"
+            
+            try:
+                return np.mean(nearest_expiry_ATM) if nearest_expiry_ATM else None, expiry_string
+            except Exception as e:
+                print("Error calculating mean")
+                return None, None
+        except Exception as e:
+            print(f"Error processing Binance option data: {e}")
+            return None, None
+
+
     def register_exit_handlers(self):
         """Register comprehensive exit handlers to ensure data flushing on ANY exit"""
         # Register atexit handler (runs on normal exit)
@@ -312,7 +416,7 @@ class BRTIDataCollector:
                 # Use execute_values for efficient bulk insertion
                 psycopg2.extras.execute_values(
                     cur,
-                    "INSERT INTO brti_prices (timestamp_ms, brti_price, simple_average) VALUES %s",
+                    "INSERT INTO brti_prices (timestamp_ms, brti_price, simple_average, binance_option_price) VALUES %s",
                     batch_data,
                     page_size=len(batch_data)
                 )
@@ -325,7 +429,7 @@ class BRTIDataCollector:
             # Attempt to rollback the faulty transaction
             self.conn.rollback()
 
-    def add_price_to_batch(self, price, receipt_timestamp_ms):
+    def add_price_to_batch(self, price, binance_option_price, receipt_timestamp_ms, expiry_time):
         """Add price data to batch for DB writing"""
         # Update simple average
         self.latest_price['simple_average'].append(price)
@@ -334,11 +438,15 @@ class BRTIDataCollector:
             
         simple_avg = np.mean(self.latest_price['simple_average']) if self.latest_price['simple_average'] else price
         
+        # Get Binance option mark price
+        # binance_option_price = self.get_binance_option_mark_price(price)
+        
         # The row format must match the database table schema
         row = [
             int(receipt_timestamp_ms),
             float(price),
-            float(simple_avg)
+            float(simple_avg),
+            float(binance_option_price) if binance_option_price is not None else None
         ]
         
         with self.price_batch_lock:
@@ -353,7 +461,35 @@ class BRTIDataCollector:
                 self.write_price_batch_to_db(batch_to_write)
         
         timestamp_est = self.timestamp_to_est(receipt_timestamp_ms)
-        self.print_if_enabled(f"💰 BRTI QUEUED [{timestamp_est}] Price: ${price:,.2f} | Simple Avg: ${simple_avg:,.2f}")
+        
+        # Log the prices
+        log_message = f"💰 BRTI QUEUED [{timestamp_est}] Price: ${price:,.2f}"
+        if binance_option_price is not None:
+            log_message += f" | Binance Option: {binance_option_price*100:,.4f}% | Expiry: {expiry_time}"
+        else:
+            log_message += " | Binance Option: N/A"
+            
+        self.print_if_enabled(log_message)
+        
+        # Emit WebSocket update
+        self.emit_price_update(price, simple_avg, timestamp_est, binance_option_price)
+        
+    def emit_price_update(self, price, simple_avg, timestamp_est, binance_option_price):
+        """Emit price update to all connected WebSocket clients"""
+        if self.active_clients:
+            update_payload = {
+                'brti': price,
+                'simple_average': simple_avg,
+                'timestamp': timestamp_est,
+                'active_clients': len(self.active_clients),
+                'binance_option_price': binance_option_price
+            }
+            
+            try:
+                socketio.emit('price_update', update_payload)
+                self.print_if_enabled(f"📡 WebSocket: Emitted price update to {len(self.active_clients)} clients")
+            except Exception as e:
+                self.logger.error(f"WEBSOCKET_EMIT_ERROR | Failed to emit price update: {e}")
         
     def is_shadow_banned(self):
         """Check if we're potentially shadow banned (no price updates for too long)"""
@@ -508,9 +644,11 @@ class BRTIDataCollector:
                                 # Update latest_price state
                                 self.latest_price['value'] = price
                                 self.latest_price['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                                binance_option_price, expiry_time = self.get_binance_option_mark_price(price)
                                 
                                 # Add to batch for DB writing
-                                self.add_price_to_batch(price, receipt_timestamp_ms)
+                                self.add_price_to_batch(price, binance_option_price, receipt_timestamp_ms, expiry_time)
                                 
                                 # Log price update for session tracking
                                 self.log_price_update(price)
@@ -574,17 +712,80 @@ class BRTIDataCollector:
     def run(self):
         """Main run loop"""
         try:
+            # Start WebSocket server in a separate thread
+            websocket_thread = threading.Thread(target=self.start_websocket_server, daemon=True)
+            websocket_thread.start()
+            
+            # Start the main polling loop
             self.poll_brti()
         except Exception as e:
             self.logger.error(f"RUN_ERROR | Unexpected error in main loop: {str(e)}")
             self.print_if_enabled(f"Unexpected error: {e}")
             # cleanup_and_exit will be called by atexit handler
+            
+    def start_websocket_server(self):
+        """Start the WebSocket server"""
+        try:
+            self.print_if_enabled("🌐 Starting WebSocket server on http://localhost:5001...")
+            self.logger.info("WEBSOCKET_SERVER_STARTING | Port: 5001")
+            socketio.run(app, host="127.0.0.1", port=5001)
+        except Exception as e:
+            self.logger.error(f"WEBSOCKET_SERVER_ERROR | Failed to start WebSocket server: {e}")
+            self.print_if_enabled(f"WebSocket server error: {e}")
+
+    def setup_websocket_handlers(self):
+        """Setup WebSocket event handlers"""
+        @socketio.on('connect')
+        def handle_connect():
+            sid = request.sid
+            self.active_clients.add(sid)
+            self.print_if_enabled(f"🔗 WebSocket client connected: {sid}")
+            self.logger.info(f"WEBSOCKET_CLIENT_CONNECTED | Session ID: {sid}")
+        
+        @socketio.on('disconnect')
+        def handle_disconnect():
+            sid = request.sid
+            self.active_clients.discard(sid)
+            self.print_if_enabled(f"❌ WebSocket client disconnected: {sid}")
+            self.logger.info(f"WEBSOCKET_CLIENT_DISCONNECTED | Session ID: {sid}")
+        
+        # Store handlers as instance methods for access
+        self.handle_connect = handle_connect
+        self.handle_disconnect = handle_disconnect
+
+# === Flask Routes ===
+@app.route('/price', methods=['GET'])
+def get_price():
+    """REST endpoint to get current BRTI price"""
+    collector = getattr(app, 'collector_instance', None)
+    if not collector or collector.latest_price['value'] is None:
+        return jsonify({'status': 'waiting for data'}), 503
+    
+    simple_avg = np.mean(collector.latest_price['simple_average']) if collector.latest_price['simple_average'] else collector.latest_price['value']
+    
+    # TEMPORARILY DISABLE BINANCE OPTION PRICE TO DEBUG RECURSION
+    # Get current Binance option price
+    # current_brti = collector.latest_price['value']
+    # binance_option_price = collector.get_cached_binance_option_price(current_brti)
+    binance_option_price = None  # Temporarily disabled
+    
+    return jsonify({
+        'brti': collector.latest_price['value'],
+        'simple_average': simple_avg,
+        'timestamp': collector.latest_price['timestamp'],
+        'active_clients': len(collector.active_clients),
+        'binance_option_price': binance_option_price
+    })
 
 def main():
     # Check if running in unified mode (disable terminal output)
     disable_terminal_output = os.environ.get('BRTI_DISABLE_TERMINAL', 'false').lower() == 'true'
     
     collector = BRTIDataCollector(disable_terminal_output=disable_terminal_output)
+    
+    # Store collector instance in Flask app for REST endpoint access
+    app.collector_instance = collector
+    
     try:
         collector.run()
     except Exception as e:
@@ -597,6 +798,8 @@ if __name__ == "__main__":
         print("Starting BRTI Data Collector...")
         print("Bitcoin Real Time Index (BRTI)")
         print("Storage: TimescaleDB")
+        print("WebSocket: http://localhost:5001")
+        print("REST API: http://localhost:5001/price")
         print("Timestamps at data receipt")
         print("Batched writes for efficiency")
         print("Timezone: EST")
@@ -606,6 +809,9 @@ if __name__ == "__main__":
     
     try:
         main()
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        # cleanup_and_exit will be called by atexit handler
     except Exception as e:
         print(f"Fatal error: {e}")
         # cleanup_and_exit will be called by atexit handler

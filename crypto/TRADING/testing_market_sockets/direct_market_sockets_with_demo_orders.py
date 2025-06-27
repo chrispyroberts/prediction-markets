@@ -85,9 +85,9 @@ class MarketMaker:
         self.total_trades = 0
 
         # mm config
-        self.mm_threshold = 80
-        self.mm_min_spread = 8      
-        self.mm_size = 100   
+        self.mm_threshold = 10
+        self.mm_min_spread = 3      
+        self.mm_size = 5   
         self.search = True # Enable searching for viable quotes rather than just top market maker quotes
         
         # Initialize order manager

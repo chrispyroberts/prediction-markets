@@ -17,9 +17,10 @@
 -- =================================================================
 DROP TABLE IF EXISTS brti_prices CASCADE;
 CREATE TABLE brti_prices (
-    timestamp_ms    BIGINT            NOT NULL,
-    brti_price      DOUBLE PRECISION  NOT NULL,
-    simple_average  DOUBLE PRECISION  NOT NULL,
+    timestamp_ms           BIGINT            NOT NULL,
+    brti_price             DOUBLE PRECISION  NOT NULL,
+    simple_average         DOUBLE PRECISION  NOT NULL,
+    binance_option_price   DOUBLE PRECISION,
     PRIMARY KEY(timestamp_ms)
 );
 

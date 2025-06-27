@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 import base64
 from cryptography.exceptions import InvalidSignature
 
-DEBUG = True  # Toggle this to False to disable all debug prints
+DEBUG = False  # Toggle this to False to disable all debug prints
 
 def debug_print(*args, **kwargs):
     if DEBUG:
@@ -26,7 +26,7 @@ def load_key_from_file(file_path):
         key = f.read().strip()
     return key
 
-USE_DEMO_API = False  # Set to False for production API 
+USE_DEMO_API = True  # Set to False for production API 
 
 # Load demo API key from .env
 demo_private_key_path = ".private_key_demo"
